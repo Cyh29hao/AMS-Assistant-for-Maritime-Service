@@ -28,6 +28,8 @@
         </a>
         <nav class="nav">
           <a href="#features">功能方向</a>
+          <a href="#quickstart">快速上手</a>
+          <a href="#deploy">部署方式</a>
           <a href="#approach">使用方式</a>
           <a href="#roadmap">推进顺序</a>
         </nav>
@@ -43,8 +45,8 @@
               <strong>本地网页工具</strong>运行，保证 Word、Excel、网页登录和业务数据处理更稳定，也更适合日常复用。
             </p>
             <div class="hero-actions">
-              <a class="button primary" href="#features">查看三大功能</a>
-              <a class="button secondary" href="#approach">为什么不是纯在线系统</a>
+              <a class="button primary" href="#quickstart">我该怎么开始</a>
+              <a class="button secondary" href="#deploy">查看部署方式</a>
             </div>
           </div>
 
@@ -75,6 +77,51 @@
                 <p>从 LINE UP 到港口分区船期表，降低人工整理成本。</p>
               </article>
             </div>
+          </div>
+        </section>
+
+        <section id="quickstart" class="section">
+          <div class="section-heading reveal">
+            <p class="eyebrow">QUICK START</p>
+            <h2>看完这页，最好马上知道“我该怎么用”。</h2>
+            <p>
+              AMS 第二版首页优先解决两个问题：普通同事怎么进入，技术同事怎么部署。
+            </p>
+          </div>
+
+          <div class="quickstart-grid">
+            <article class="start-card reveal">
+              <span class="start-badge">For Users</span>
+              <h3>只想使用</h3>
+              <ol>
+                <li>打开 GitHub Pages 首页</li>
+                <li>确认自己要用的是合同、通关还是船期模块</li>
+                <li>按后续提供的本地工具入口启动使用</li>
+              </ol>
+              <p>适合妈妈和同事，不要求理解代码和部署细节。</p>
+            </article>
+
+            <article class="start-card reveal">
+              <span class="start-badge">For Maintainers</span>
+              <h3>想自己部署页面</h3>
+              <ol>
+                <li>拉取仓库代码</li>
+                <li>推送到 GitHub</li>
+                <li>在 Pages 里启用 main 分支发布</li>
+              </ol>
+              <p>适合你自己或帮团队维护入口页的人。</p>
+            </article>
+
+            <article class="start-card reveal highlighted">
+              <span class="start-badge">Current Status</span>
+              <h3>现在已经能做什么</h3>
+              <ol>
+                <li>把 AMS 项目思路讲清楚</li>
+                <li>作为统一说明和入口页发布</li>
+                <li>为后续本地工具接入预留位置</li>
+              </ol>
+              <p>下一步会继续补真正可执行的本地网页工具骨架。</p>
+            </article>
           </div>
         </section>
 
@@ -126,6 +173,74 @@
                 <li>输出形式容易标准化</li>
               </ul>
             </article>
+          </div>
+        </section>
+
+        <section id="deploy" class="section">
+          <div class="section-heading reveal">
+            <p class="eyebrow">DEPLOYMENT</p>
+            <h2>给不同人准备不同的部署方式。</h2>
+            <p>
+              同一个 AMS 项目，不一定只有一种交付方法。入口页要轻，真正的自动化工具要稳。
+            </p>
+          </div>
+
+          <div class="deploy-grid">
+            <article class="deploy-card reveal">
+              <span class="deploy-label">Option 1</span>
+              <h3>直接访问在线入口页</h3>
+              <p>
+                最轻量的方式。适合先把 AMS 的功能、边界和后续入口统一起来，不需要任何安装。
+              </p>
+              <ul class="check-list">
+                <li>适合所有人访问</li>
+                <li>适合作为项目首页</li>
+                <li>适合发给家人和同事浏览</li>
+              </ul>
+            </article>
+
+            <article class="deploy-card reveal">
+              <span class="deploy-label">Option 2</span>
+              <h3>自己部署 GitHub Pages</h3>
+              <p>
+                适合希望快速复制一个相同入口页的人。只要会用 GitHub，就能几分钟部署出来。
+              </p>
+              <div class="code-block">
+                <code>
+                  git init<br />
+                  git branch -M main<br />
+                  git add .<br />
+                  git commit -m "Deploy AMS site"<br />
+                  git remote add origin YOUR_REPO_URL<br />
+                  git push -u origin main
+                </code>
+              </div>
+            </article>
+
+            <article class="deploy-card reveal dark">
+              <span class="deploy-label">Option 3</span>
+              <h3>后续接本地网页工具</h3>
+              <p>
+                真正涉及 Word、Excel、网页登录自动化的能力，建议用本地运行方式接入，这样更稳也更安全。
+              </p>
+              <ul class="check-list">
+                <li>业务文件不需要上传公网</li>
+                <li>账号和日志留在本机</li>
+                <li>更适合重复日常操作</li>
+              </ul>
+            </article>
+          </div>
+
+          <div class="deploy-note reveal">
+            <div>
+              <p class="eyebrow">RECOMMENDED PATH</p>
+              <h3>当前最适合的组合</h3>
+              <p>
+                <strong>GitHub Pages 负责入口页，后续本地工具负责执行。</strong>
+                这样既方便传播，也方便每个人落地使用。
+              </p>
+            </div>
+            <a class="button secondary" href="#approach">查看原因</a>
           </div>
         </section>
 
@@ -203,10 +318,38 @@
           </div>
         </section>
 
+        <section class="section faq-section">
+          <div class="section-heading reveal">
+            <p class="eyebrow">FAQ</p>
+            <h2>先把最容易误解的地方说清楚。</h2>
+          </div>
+
+          <div class="faq-grid">
+            <article class="faq-card reveal">
+              <h3>这个页面本身能直接出合同吗？</h3>
+              <p>
+                还不能。它现在是入口页和说明页。真正的合同生成、网页登录查询和 Excel 回填，会接到后续本地网页工具里。
+              </p>
+            </article>
+            <article class="faq-card reveal">
+              <h3>妈妈和同事需要懂 GitHub 吗？</h3>
+              <p>
+                不需要。理想状态下，他们只需要打开你发给他们的页面链接，再进入后续本地工具即可。
+              </p>
+            </article>
+            <article class="faq-card reveal">
+              <h3>为什么不直接做成纯在线系统？</h3>
+              <p>
+                因为业务里涉及 Word、Excel、网页登录和敏感数据，纯在线静态页不够稳，也不够适合长期复用。
+              </p>
+            </article>
+          </div>
+        </section>
+
         <section class="section callout reveal">
           <div>
             <p class="eyebrow">NEXT</p>
-            <h2>当前这个版本先承担“解释清楚”和“统一入口”的任务。</h2>
+            <h2>当前这个版本，已经开始承担“解释清楚 + 指导上手 + 帮助部署”的任务。</h2>
             <p>
               下一步会继续补本地工具骨架，让这个入口页不仅能介绍 AMS，也能真正接住日常工作流。
             </p>
