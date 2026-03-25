@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AMS | Assistant for Maritime Service</title>
+    <meta
+      name="description"
+      content="Assistant for Maritime Service 是一个面向航运业务同事的自动化工作台，聚焦合同生成、通关查询和船期汇总。"
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=Noto+Sans+SC:wght@400;500;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="page-shell">
+      <header class="topbar">
+        <a class="brand" href="#home">
+          <span class="brand-mark">AMS</span>
+          <span class="brand-text">
+            <strong>Assistant for Maritime Service</strong>
+            <span>航运业务自动化入口页</span>
+          </span>
+        </a>
+        <nav class="nav">
+          <a href="#features">功能方向</a>
+          <a href="#approach">使用方式</a>
+          <a href="#roadmap">推进顺序</a>
+        </nav>
+      </header>
+
+      <main id="home">
+        <section class="hero">
+          <div class="hero-copy reveal">
+            <p class="eyebrow">AMS PROJECT SITE</p>
+            <h1>把重复查询、填表和出合同，整理成一个妈妈和同事都能上手的入口。</h1>
+            <p class="hero-lead">
+              这个页面是 AMS 的对外说明和统一入口。真正的自动化能力会采用
+              <strong>本地网页工具</strong>运行，保证 Word、Excel、网页登录和业务数据处理更稳定，也更适合日常复用。
+            </p>
+            <div class="hero-actions">
+              <a class="button primary" href="#features">查看三大功能</a>
+              <a class="button secondary" href="#approach">为什么不是纯在线系统</a>
+            </div>
+          </div>
+
+          <div class="hero-panel reveal">
+            <div class="signal-card">
+              <span class="signal-tag">Current Direction</span>
+              <h2>本页适合放在 GitHub Pages</h2>
+              <ul class="signal-list">
+                <li>作为项目首页和说明页</li>
+                <li>帮助同事理解 AMS 做什么</li>
+                <li>后续可作为本地工具下载入口</li>
+              </ul>
+            </div>
+            <div class="signal-grid">
+              <article>
+                <span>01</span>
+                <h3>合同自动生成</h3>
+                <p>从业务表格到 Word 合同，减少手工改红字和复制粘贴。</p>
+              </article>
+              <article>
+                <span>02</span>
+                <h3>通关查询回填</h3>
+                <p>按规则检查未通关提单状态，准备后续接入定时查询。</p>
+              </article>
+              <article>
+                <span>03</span>
+                <h3>船期矩阵汇总</h3>
+                <p>从 LINE UP 到港口分区船期表，降低人工整理成本。</p>
+              </article>
+            </div>
+          </div>
+        </section>
+
+        <section id="features" class="section">
+          <div class="section-heading reveal">
+            <p class="eyebrow">FUNCTIONS</p>
+            <h2>AMS 不是泛用聊天页，而是三类明确业务动作。</h2>
+            <p>
+              每个模块都围绕一个结果展开：要么导出合同，要么回填表格，要么生成报表。
+            </p>
+          </div>
+
+          <div class="feature-grid">
+            <article class="feature-card reveal accent-cyan">
+              <p class="feature-index">Module A</p>
+              <h3>合同中心</h3>
+              <p>
+                读取业务表格，自动判断模板，补齐关键字段，输出结构完整的双语航次合同。
+              </p>
+              <ul>
+                <li>适合优先做 MVP</li>
+                <li>输入输出最明确</li>
+                <li>不依赖网页登录</li>
+              </ul>
+            </article>
+
+            <article class="feature-card reveal accent-orange">
+              <p class="feature-index">Module B</p>
+              <h3>通关查询</h3>
+              <p>
+                登录目标网站查询提单状态，如已放行则自动回填业务表中的备货、PCS 和 MT。
+              </p>
+              <ul>
+                <li>适合后续接定时任务</li>
+                <li>对登录稳定性要求高</li>
+                <li>失败日志必须清楚</li>
+              </ul>
+            </article>
+
+            <article class="feature-card reveal accent-mint">
+              <p class="feature-index">Module C</p>
+              <h3>船期汇总</h3>
+              <p>
+                读取 LINE UP 船名，查询外部结果后生成“港口 x 区域”的矩阵型船期表。
+              </p>
+              <ul>
+                <li>适合第二阶段实现</li>
+                <li>已有真实 Excel 样本</li>
+                <li>输出形式容易标准化</li>
+              </ul>
+            </article>
+          </div>
+        </section>
+
+        <section id="approach" class="section split-section">
+          <div class="section-heading reveal">
+            <p class="eyebrow">APPROACH</p>
+            <h2>为什么首页能放在 GitHub Pages，但核心能力放在本地运行。</h2>
+          </div>
+
+          <div class="split-layout">
+            <article class="explain-card reveal">
+              <h3>GitHub Pages 适合做什么</h3>
+              <ul class="check-list">
+                <li>项目首页与功能介绍</li>
+                <li>面向同事的操作说明</li>
+                <li>后续的工具下载入口</li>
+                <li>轻量级前端展示页面</li>
+              </ul>
+            </article>
+
+            <article class="explain-card reveal dark">
+              <h3>为什么不把全部自动化都放到纯网页里</h3>
+              <ul class="check-list">
+                <li>Word 合同模板处理不适合纯前端长期维护</li>
+                <li>网页登录查询涉及稳定性、跨域和账号安全</li>
+                <li>Excel 回填与定时任务更适合本地服务执行</li>
+                <li>业务数据本地保存，对家人和同事更安心</li>
+              </ul>
+            </article>
+          </div>
+
+          <div class="workflow reveal">
+            <div class="workflow-line"></div>
+            <article>
+              <span>Step 1</span>
+              <h3>打开这个入口页</h3>
+              <p>理解 AMS 能做什么，进入对应模块说明。</p>
+            </article>
+            <article>
+              <span>Step 2</span>
+              <h3>启动本地网页工具</h3>
+              <p>后续会提供本地运行版本，用浏览器打开即可使用。</p>
+            </article>
+            <article>
+              <span>Step 3</span>
+              <h3>上传文件并下载结果</h3>
+              <p>保持流程简单，尽量不要求用户理解技术细节。</p>
+            </article>
+          </div>
+        </section>
+
+        <section id="roadmap" class="section">
+          <div class="section-heading reveal">
+            <p class="eyebrow">ROADMAP</p>
+            <h2>建议推进顺序</h2>
+            <p>先做最清晰、最容易形成可见成果的模块，再处理更重的网页登录自动化。</p>
+          </div>
+
+          <div class="roadmap-grid">
+            <article class="roadmap-card reveal">
+              <span class="roadmap-badge">Phase 1</span>
+              <h3>合同自动生成</h3>
+              <p>先跑通表格到 Word 的完整链路，建立大家对 AMS 的信心。</p>
+            </article>
+            <article class="roadmap-card reveal">
+              <span class="roadmap-badge">Phase 2</span>
+              <h3>船期汇总</h3>
+              <p>把已有的 LINE UP 样本转成固定输出格式，积累查询逻辑。</p>
+            </article>
+            <article class="roadmap-card reveal">
+              <span class="roadmap-badge">Phase 3</span>
+              <h3>通关回填</h3>
+              <p>最后接入定时任务、网页登录和更完整的错误处理。</p>
+            </article>
+          </div>
+        </section>
+
+        <section class="section callout reveal">
+          <div>
+            <p class="eyebrow">NEXT</p>
+            <h2>当前这个版本先承担“解释清楚”和“统一入口”的任务。</h2>
+            <p>
+              下一步会继续补本地工具骨架，让这个入口页不仅能介绍 AMS，也能真正接住日常工作流。
+            </p>
+          </div>
+          <a class="button primary" href="#home">返回顶部</a>
+        </section>
+      </main>
+    </div>
+
+    <script src="script.js"></script>
+  </body>
+</html>
