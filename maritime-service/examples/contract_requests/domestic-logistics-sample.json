@@ -1,0 +1,55 @@
+{
+  "request_id": "DEMO-DOMESTIC-LOGISTICS",
+  "template_key": "domestic_logistics",
+  "output_name": "domestic-logistics-sample",
+  "contract_date": "2026-03-11",
+  "vessel_name": "YAN JIANG STAR",
+  "vessel_particulars": [
+    "BLT 2012, CHINA FLAG, DWT 22000MT ON ABOUT 9.80M SUMMER DRAFT",
+    "LOA 158.00M, BEAM 24.00M, DEPTH 13.10M, 4H/4H, GEARLESS",
+    "ABT 22000CBM GRAIN CAPACITY, ALL ABOUT AND WOG"
+  ],
+  "cargo_summary_en": "ABT 9200MT SAINLESS STEEL COILS AND ALUMINUM INGOT , 5% MOLCO",
+  "cargo_summary_cn": "约9200吨不锈钢卷和铝锭，±5%由租家决定",
+  "load_port_en": "1SBP BAHODOPI, SULAWESI PROVINCE, INDONESIA   CHARTERERS' BERTH",
+  "load_port_cn": "印尼苏拉威西BAHODOPI港一个安全泊位",
+  "discharge_port_en": "1SBP YANGJIANG + 1 SBP DONGGUAN, CHINA   OWNERS' BERTH.",
+  "discharge_port_cn": "中国阳江港的一个安全泊位，和东莞港的一个安全泊位",
+  "laycan_start": "2026-01-17",
+  "laycan_end": "2026-01-20",
+  "demurrage_rate_usd": "5000",
+  "loading_rate_en": "LDG 4 WWD SHINC, DISCHG CQD. ONCE DEMURRAGE, ALWAYS ON DEMURRAGE",
+  "loading_rate_cn": "装港为4个晴天工作日，卸港当地港口通常的装卸速度。一旦滞期，永远滞期",
+  "freight_rate_usd_per_mt": "18.50",
+  "freight_terms_code": "FIO",
+  "freight_port_basis": "1/2",
+  "cargo_rows": [
+    {
+      "loading_port": "BAHODOPI",
+      "discharge_port": "YANGJIANG",
+      "quantity": "1500",
+      "unit": "MT",
+      "cargo_name_en": "STL COIL",
+      "cargo_name_cn": "不锈钢卷",
+      "terms": ""
+    },
+    {
+      "loading_port": "BAHODOPI",
+      "discharge_port": "DONGGUAN",
+      "quantity": "7200",
+      "unit": "MT",
+      "cargo_name_en": "STL COIL",
+      "cargo_name_cn": "不锈钢卷",
+      "terms": ""
+    },
+    {
+      "loading_port": "BAHODOPI",
+      "discharge_port": "DONGGUAN",
+      "quantity": "500",
+      "unit": "MT",
+      "cargo_name_en": "ALUMINUM INGOT (IN BUNDLE, L*B*H : 0.84*0.84*1.1, U/W:1.1 MT)",
+      "cargo_name_cn": "铝锭",
+      "terms": ""
+    }
+  ]
+}

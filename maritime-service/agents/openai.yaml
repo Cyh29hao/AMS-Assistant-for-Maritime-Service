@@ -1,0 +1,7 @@
+interface:
+  display_name: "Maritime Service"
+  short_description: "Maritime workflows with checks and approval gates."
+  default_prompt: "Use $maritime-service to plan or execute a maritime service request."
+
+policy:
+  allow_implicit_invocation: true

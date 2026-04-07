@@ -1,0 +1,32 @@
+{
+  "request_id": "DEMO-OVERSEAS-RTA",
+  "template_key": "overseas_rta",
+  "output_name": "overseas-rta-sample",
+  "contract_date": "2026-03-13",
+  "vessel_name": "OCEAN PROSPER",
+  "cargo_summary_en": "40500MT FERRO NICKEL IN BULK , 5% MOLCO",
+  "cargo_summary_cn": "40500吨散装镍铁，±5%由租家决定",
+  "load_port_en": "1SBP WEDA, SULAWESI PROVINCE, INDONESIA, CHARTERERS' BERTH",
+  "load_port_cn": "印尼苏拉威西WEDA港一个安全泊位",
+  "discharge_port_en": "1SBP NINGDE, CHINA  OWNERS' BERTH.",
+  "discharge_port_cn": "中国宁德港的一个安全泊位",
+  "laycan_start": "2026-03-03",
+  "laycan_end": "2026-03-06",
+  "demurrage_rate_usd": "8000",
+  "loading_rate_en": "LDG 6 WWD SHINC, DISCHG CQD. ONCE DEMURRAGE, ALWAYS ON DEMURRAGE",
+  "loading_rate_cn": "装港为6个晴天工作日，卸港当地港口通常的装卸速度。一旦滞期，永远滞期",
+  "freight_rate_usd_per_mt": "29",
+  "freight_terms_code": "FIO",
+  "freight_port_basis": "1/1",
+  "cargo_rows": [
+    {
+      "loading_port": "WEDA",
+      "discharge_port": "NINGDE",
+      "quantity": "40500",
+      "unit": "MT",
+      "cargo_name_en": "FERRO NICKEL IN BULK",
+      "cargo_name_cn": "散装镍铁",
+      "terms": ""
+    }
+  ]
+}

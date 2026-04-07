@@ -1,0 +1,38 @@
+{
+  "request_id": "MS-DRC-002",
+  "service_type": "port-clearance",
+  "deadline": "2026-04-05",
+  "vessel": {
+    "name": "MV Horizon",
+    "imo_number": "9876543"
+  },
+  "documents": [
+    {
+      "type": "vessel-particulars",
+      "provided": true,
+      "fields": {
+        "vessel_name": "MV Horizon",
+        "imo_number": "9876543",
+        "flag": "Panama"
+      }
+    },
+    {
+      "type": "crew-list",
+      "provided": true,
+      "fields": {
+        "master_name": "A. Kumar",
+        "total_crew": 21
+      },
+      "expiry_date": "2026-04-08"
+    },
+    {
+      "type": "last-port-clearance",
+      "provided": true,
+      "fields": {
+        "port_name": "Singapore",
+        "clearance_date": "2026-04-02"
+      },
+      "expiry_date": "2026-04-08"
+    }
+  ]
+}

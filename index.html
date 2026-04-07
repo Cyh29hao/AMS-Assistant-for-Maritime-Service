@@ -46,9 +46,9 @@
               当前页面用于统一说明 AMS 的功能、使用路径、版本信息和部署方式。
             </p>
             <p class="hero-note">
-              真正的业务执行将放在后续的
-              <strong>本地网页工具</strong>
-              中完成；本页负责帮助使用者快速理解 AMS，并进入后续对应入口。
+              当前仓库已经交付一套可运行的
+              <strong>本地 skill 包</strong>
+              ，可以直接通过批处理和 Python 脚本生成合同；后续再继续接入本地网页工具。
             </p>
             <div class="hero-actions">
               <a class="button primary" href="#quickstart">我该怎么开始</a>
@@ -60,7 +60,7 @@
             <article class="entry-card">
               <span class="entry-tag">For Users</span>
               <h2>先使用，再理解技术细节</h2>
-              <p>普通使用者建议先看“快速开始”和“功能模块”。</p>
+              <p>普通使用者可以直接进入 maritime-service 目录，按教程和批处理先把合同流程跑起来。</p>
               <a class="text-link" href="#quickstart">进入快速开始</a>
             </article>
             <article class="entry-card">
@@ -88,18 +88,18 @@
             <article class="step-card reveal">
               <span class="step-number">02</span>
               <h3>再进入对应工具</h3>
-              <p>后续本地网页工具上线后，将从这个入口页直接进入对应模块。</p>
+              <p>当前可以直接使用 maritime-service 目录中的批处理文件和 Python 脚本执行合同流程。</p>
             </article>
             <article class="step-card reveal">
               <span class="step-number">03</span>
               <h3>上传并下载结果</h3>
-              <p>核心操作会尽量收敛成上传文件、执行任务、下载结果三个动作。</p>
+              <p>合同中心已经支持 Excel 和 JSON 两种输入方式，并能输出 Word 合同与结构化摘要。</p>
             </article>
           </div>
 
           <div class="entry-note reveal">
             <strong>当前状态：</strong>
-            这个页面已经可以作为正式入口页使用；后续将继续接入本地网页工具的启动入口、下载入口和更新说明。
+            `req1 系统出合同` 已经在仓库中可运行；`req2 通关查询` 和 `req3 船期汇总` 目前处于已整理需求、待继续开发状态。
           </div>
         </section>
 
@@ -118,6 +118,7 @@
                 从业务表格自动生成 Word 合同，减少手工改模板、补红字和复制粘贴的步骤。
               </p>
               <ul>
+                <li>当前仓库已经可直接运行</li>
                 <li>输入输出最明确</li>
                 <li>适合最先落地</li>
                 <li>不依赖网页登录</li>

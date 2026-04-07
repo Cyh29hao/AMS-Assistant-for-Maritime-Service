@@ -1,0 +1,14 @@
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.DS_Store
+Thumbs.db
+
+maritime-service/output/contracts/*
+!maritime-service/output/contracts/.gitkeep
+!maritime-service/output/contracts/_verification/
+maritime-service/output/contracts/_verification/*
+!maritime-service/output/contracts/_verification/.gitkeep
+maritime-service/output/reports/*
+!maritime-service/output/reports/.gitkeep

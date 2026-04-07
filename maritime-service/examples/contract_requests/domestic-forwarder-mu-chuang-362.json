@@ -1,0 +1,57 @@
+{
+  "request_id": "DEMO-MU-CHUANG-362",
+  "template_key": "domestic_forwarder",
+  "output_name": "mu-chuang-362-demo",
+  "contract_no": "MU CHANG 362 -202602-K--RONGTUA",
+  "contract_date": "2026-02-04",
+  "vessel_name": "MU CHUANG 362",
+  "vessel_particulars": [
+    "BLT/OCT/2010 , CCS CLASS, CHINA FLAG, SDBC, DWT 35091MT ON ABT 10.27 SUMMER DRAFT",
+    "LOA179.88M, BEAM 28.8M, DEPTH 14.6M, GRT/NRT22382/11772",
+    "GRAIN/BALE CAPA:NO.1 6715.9 NO.2 9931.6,NO.3 9944.1 NO.4 9943.8 NO.5 8883.0",
+    "5H/5H, CRANE 4 X 30MT, ALL ABOUT AND WOG"
+  ],
+  "cargo_summary_en": "ABT 18500MT SAINLESS STEEL COILS AND EMM IN TON BAG , 5% MOLCO",
+  "cargo_summary_cn": "约18500吨不锈钢卷和吨袋电解锰，±5%由租家决定",
+  "load_port_en": "1SBP BAHODOPI, SULAWESI PROVINCE, INDONESIA   CHARTERERS' BERTH",
+  "load_port_cn": "印尼苏拉威西BAHODOPI港一个安全泊位",
+  "discharge_port_en": "1SBP TANGJUNG LANGSAT + 1 SBP KELANG(WEST PORT), MALAYSIA   OWNERS' BERTH.",
+  "discharge_port_cn": "马来西亚巴鲁钢的一个安全泊位，和巴生西港的一个安全泊位",
+  "laycan_start": "2026-02-02",
+  "laycan_end": "2026-02-05",
+  "demurrage_rate_usd": "6500",
+  "loading_rate_en": "LDG 4 WWD SHINC, DISCHG CQD. ONCE DEMURRAGE, ALWAYS ON DEMURRAGE",
+  "loading_rate_cn": "装港为4个晴天工作日，卸港当地港口通常的装卸速度。一旦滞期，永远滞期",
+  "freight_rate_usd_per_mt": "17.65",
+  "freight_terms_code": "FILO",
+  "freight_port_basis": "1/2",
+  "cargo_rows": [
+    {
+      "loading_port": "BAHODOPI",
+      "discharge_port": "TANGJUNG LANGSAT",
+      "quantity": "17930",
+      "unit": "MT",
+      "cargo_name_en": "STL COILS",
+      "cargo_name_cn": "不锈钢卷",
+      "terms": ""
+    },
+    {
+      "loading_port": "BAHODOPI",
+      "discharge_port": "KELANG(W)",
+      "quantity": "550",
+      "unit": "MT",
+      "cargo_name_en": "STL COILS",
+      "cargo_name_cn": "不锈钢卷",
+      "terms": ""
+    },
+    {
+      "loading_port": "BAHODOPI",
+      "discharge_port": "KELANG(W)",
+      "quantity": "20",
+      "unit": "MT",
+      "cargo_name_en": "EMM (IN TON BAG, L*B*H:0.9*0.9*0.7, U/W:1MT)",
+      "cargo_name_cn": "吨袋电解锰",
+      "terms": ""
+    }
+  ]
+}

@@ -1,0 +1,53 @@
+{
+  "port-clearance": {
+    "description": "Starter checklist for port clearance readiness.",
+    "required_documents": [
+      {
+        "type": "vessel-particulars",
+        "required_fields": ["vessel_name", "imo_number", "flag"]
+      },
+      {
+        "type": "crew-list",
+        "required_fields": ["master_name", "total_crew"]
+      },
+      {
+        "type": "last-port-clearance",
+        "required_fields": ["port_name", "clearance_date"]
+      }
+    ]
+  },
+  "crew-change": {
+    "description": "Starter checklist for crew-change coordination.",
+    "required_documents": [
+      {
+        "type": "crew-list",
+        "required_fields": ["master_name", "total_crew"]
+      },
+      {
+        "type": "passport-summary",
+        "required_fields": ["crew_count", "nationalities"]
+      },
+      {
+        "type": "visa-status",
+        "required_fields": ["crew_count", "valid_until"]
+      }
+    ]
+  },
+  "stores-delivery": {
+    "description": "Starter checklist for onboard stores delivery.",
+    "required_documents": [
+      {
+        "type": "delivery-order",
+        "required_fields": ["supplier_name", "delivery_window"]
+      },
+      {
+        "type": "security-clearance",
+        "required_fields": ["issued_by", "valid_until"]
+      },
+      {
+        "type": "vessel-particulars",
+        "required_fields": ["vessel_name", "imo_number", "flag"]
+      }
+    ]
+  }
+}
