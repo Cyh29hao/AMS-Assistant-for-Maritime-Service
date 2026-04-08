@@ -1,4 +1,4 @@
-# Operating Model
+﻿# Operating Model
 
 ## What This Skill Is
 

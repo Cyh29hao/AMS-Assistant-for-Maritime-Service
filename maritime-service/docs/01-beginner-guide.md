@@ -1,4 +1,4 @@
-# Beginner Guide
+﻿﻿# Beginner Guide
 
 This is the short English fallback guide.
 

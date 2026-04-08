@@ -1,2 +1,4 @@
-python-docx>=1.1.2
-openpyxl>=3.1.5
+openpyxl>=3.1,<4
+python-docx>=1.1,<2
+playwright>=1.58,<2
+requests>=2.31,<3

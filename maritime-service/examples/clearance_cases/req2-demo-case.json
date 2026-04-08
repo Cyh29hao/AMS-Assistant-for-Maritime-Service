@@ -1,0 +1,111 @@
+{
+  "request_id": "REQ2-DEMO-001",
+  "query_file": "req2-demo-query-results.json",
+  "business_rows": [
+    {
+      "VOYAGE": "MV BAYANI S26094",
+      "POL": "SH(10)",
+      "POD": "KOTA KINABALU",
+      "QTTY": 245,
+      "CARGO": "挖机",
+      "MARK": "单件最重 51.7 吨，舱内",
+      "备货": "未通关",
+      "B/L NO.": "BA26094SHKK05",
+      "PCS": "",
+      "MT": "",
+      "CBM": "",
+      "FRT TON": "",
+      "TERMS": "FLT",
+      "L/S/D": "SOL",
+      "打尺": "Y",
+      "打尺联系人": "陈东宇 15821557372"
+    },
+    {
+      "VOYAGE": "MV BAYANI S26094",
+      "POL": "SH(10)",
+      "POD": "KOTA KINABALU",
+      "QTTY": 800,
+      "CARGO": "6台挖机+5台平地机",
+      "MARK": "共161吨，舱内",
+      "备货": "未通关",
+      "B/L NO.": "BA26094SHKK01-4",
+      "PCS": "",
+      "MT": "",
+      "CBM": "",
+      "FRT TON": "",
+      "TERMS": "FLT",
+      "L/S/D": "SOL",
+      "打尺": "Y",
+      "打尺联系人": "段宇 13281069959"
+    },
+    {
+      "VOYAGE": "MV BAYANI S26094",
+      "POL": "SH(10)",
+      "POD": "KUCHING",
+      "QTTY": 5433,
+      "CARGO": "57台搅拌车+1台泵车",
+      "MARK": "舱内，全下舱，不可叠",
+      "备货": "已通关",
+      "B/L NO.": "BA26094SHKU01/02",
+      "PCS": 58,
+      "MT": 840,
+      "CBM": "",
+      "FRT TON": "",
+      "TERMS": "FLT",
+      "L/S/D": "SOL",
+      "打尺": "Y",
+      "打尺联系人": "谢肖腾 18595433405"
+    },
+    {
+      "VOYAGE": "MV BAYANI S26094",
+      "POL": "SH(10)",
+      "POD": "BINTULU",
+      "QTTY": 675,
+      "CARGO": "4台全地面起重机",
+      "MARK": "共254吨，MAX 53.4吨，舱内，全下舱，不可叠",
+      "备货": "未通关",
+      "B/L NO.": "BA26094SHBT04/05",
+      "PCS": "",
+      "MT": "",
+      "CBM": "",
+      "FRT TON": "",
+      "TERMS": "FLT",
+      "L/S/D": "SOL",
+      "打尺": "Y",
+      "打尺联系人": "谢肖腾 18595433405"
+    },
+    {
+      "VOYAGE": "MV BAYANI S26094",
+      "POL": "SH(10)",
+      "POD": "SANDAKAN",
+      "QTTY": 120,
+      "CARGO": "工程设备",
+      "MARK": "待确认",
+      "备货": "未通关",
+      "B/L NO.": "BA26094SHSDK01",
+      "PCS": "",
+      "MT": "",
+      "CBM": "",
+      "FRT TON": "",
+      "TERMS": "FLT",
+      "L/S/D": "SOL",
+      "打尺": "N",
+      "打尺联系人": "测试联系人"
+    }
+  ],
+  "expected_summary": {
+    "candidate_rows": 4,
+    "updated_rows": 2,
+    "already_cleared_rows": 1,
+    "still_pending_rows": 1,
+    "missing_query_rows": 1
+  },
+  "expected_updated_bls": [
+    "BA26094SHKK05",
+    "BA26094SHKK01-4"
+  ],
+  "expected_pending_bls": [
+    "BA26094SHBT04/05",
+    "BA26094SHSDK01"
+  ]
+}

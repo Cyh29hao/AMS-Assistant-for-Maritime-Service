@@ -1,4 +1,4 @@
-# Contract Generation
+﻿# Contract Generation
 
 This reference describes the first major business workflow implemented in the skill: `req1 系统出合同`.
 

@@ -1,4 +1,4 @@
-# Document Readiness Check
+﻿# Document Readiness Check
 
 This is the first real subprocess implemented in the skill.
 

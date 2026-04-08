@@ -1,0 +1,13 @@
+{
+  "site_name": "Shanghai E-Trade DP",
+  "base_origin": "https://dp.eptrade.cn",
+  "login_url": "https://dp.eptrade.cn/#/",
+  "query_page_url": "https://dp.eptrade.cn/#/template/pss026",
+  "api_base": "https://dp.eptrade.cn/expectations",
+  "check_endpoint": "/menu/getAllMenuUnlimit",
+  "query_endpoint": "/api/jk/queryNo/hyfxPss026",
+  "default_referer": "https://dp.eptrade.cn/#/template/pss026",
+  "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36",
+  "request_timeout_seconds": 45,
+  "login_wait_minutes": 15
+}

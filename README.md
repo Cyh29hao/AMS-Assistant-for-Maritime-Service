@@ -1,122 +1,124 @@
 # AMS Assistant for Maritime Service
 
-AMS（Assistant for Maritime Service）是一套面向航运业务场景的本地自动化工作台原型。
+AMS（Assistant for Maritime Service）正在从“航运自动化脚本集合”收成一套更像产品的本地桌面工具。
 
-这个仓库现在不是“只写了想法”的空架子，而是已经包含一条真正可运行的业务流程：
+目前这套仓库已经同时具备两条使用方式：
 
-1. `req1 系统出合同` 已经落地成可执行脚本
-2. 支持用 `Excel` 或 `JSON` 作为输入
-3. 支持自动选择合同模板并生成 `Word .docx`
-4. 支持一键跑示例、一键自检、一键生成空白 Excel 模板
-5. `req2 通关查询`、`req3 船期汇总` 已经整理了需求与后续落地方案，适合作为第二阶段开发
+- `脚本/批处理模式`
+  适合先快速跑通 req1、req2、教程与示例
+- `桌面应用模式`
+  适合普通用户通过一个本地 GUI 使用 req1、req2，并为 req3 预留统一入口
 
-如果你第一次来到这个仓库，最推荐的阅读顺序是：
+## 现在已经能做什么
 
-1. 看 [`maritime-service/开始看这里.md`](./maritime-service/%E5%BC%80%E5%A7%8B%E7%9C%8B%E8%BF%99%E9%87%8C.md)
-2. 看 [`maritime-service/docs/00-如何验收这套skill.md`](./maritime-service/docs/00-%E5%A6%82%E4%BD%95%E9%AA%8C%E6%94%B6%E8%BF%99%E5%A5%97skill.md)
-3. 直接双击 `maritime-service` 目录里的批处理文件开始跑
+### 已可用
 
-## 当前交付状态
+1. `req1 系统出合同`
+   - 支持 Excel / JSON 输入
+   - 自动选择模板
+   - 生成 Word 合同和 JSON 摘要
+2. `req2 自动查通关`
+   - 支持 Excel 回填
+   - 支持网站登录态保存、检查登录态、单票测试、整表自动回填
+3. `桌面应用原型`
+   - 一个本地 GUI 入口
+   - 工作区固定
+   - 配置可保存
+   - 检查更新入口
+   - 为普通用户准备的 HTML 使用说明
+4. `req3`
+   - 入口已预留
+   - 后续可继续接船期表自动化
 
-### 已完成
+## 如果你是普通用户
 
-1. `maritime-service/` 目录已经整理成一套可直接运行的 skill 包
-2. 合同工作流已经可以生成 4 份示例合同
-3. 已提供空白 Excel 模板、示例 JSON、示例 Excel、详细教程、开发者说明
-4. 已修复 Windows `cmd` 下批处理的中文编码问题
-5. 已统一 Markdown 文件编码，减少中文乱码风险
+最推荐的路径不是直接研究源码，而是：
 
-### 已规划但未落地为生产功能
+1. 去 GitHub Releases 页面下载 release 包
+2. 解压后打开桌面应用
+3. 通过 GUI 使用 req1 和 req2
 
-1. `req2` 网站登录后自动查通关并回填 Excel
-2. `req3` 读取 LINE UP 后自动查询网站并生成矩阵型船期表
-3. 本地网页化界面
-4. 任务日志面板和定时调度面板
+如果当前还没有发布好的 release 包，也可以自己从源码生成本地 release 预览：
+
+```powershell
+python -m pip install -r .\desktop_app\requirements-desktop.txt
+python .\desktop_app\build_release.py
+```
+
+生成后会得到：
+
+- `普通用户体验区-桌面应用版-release预览/`
+- `desktop_release_build/AMS-Assistant-Desktop-v0.1.0.zip`
+
+桌面应用相关说明：
+
+- [desktop_app/README.md](./desktop_app/README.md)
+- [desktop_app/发布评估与后续方案.md](./desktop_app/%E5%8F%91%E5%B8%83%E8%AF%84%E4%BC%B0%E4%B8%8E%E5%90%8E%E7%BB%AD%E6%96%B9%E6%A1%88.md)
+
+## 如果你是想先快速验功能的人
+
+### 方式一：直接跑原来的批处理入口
+
+进入 [maritime-service](./maritime-service)，然后：
+
+1. 双击 `0-安装依赖.bat`
+2. 双击 `1-一键生成全部示例合同.bat`
+3. 双击 `5-一键自检.bat`
+
+如果要试 req2：
+
+1. 双击 `7-一键生成req2示例结果.bat`
+2. 双击 `10-一键自检req2.bat`
+3. 如果要接真网站，再双击 `11-首次登录并保存req2网站登录态.bat`
+
+### 方式二：用源码直接启动桌面应用
+
+```powershell
+python -m pip install -r .\desktop_app\requirements-desktop.txt
+python .\launch_ams_desktop_app.py
+```
+
+如果你在 Windows 上，希望保留一个最简单的启动入口，也可以用：
+
+- [启动AMS桌面应用.bat](./%E5%90%AF%E5%8A%A8AMS%E6%A1%8C%E9%9D%A2%E5%BA%94%E7%94%A8.bat)
 
 ## 仓库结构
 
 ```text
 .
-├─ index.html / styles.css / script.js
-│  根目录说明页，可作为项目展示入口
+├─ maritime-service/
+│  业务脚本、批处理、模板、示例、文档
+├─ desktop_app/
+│  桌面 GUI、设置存储、release 打包、用户说明
 ├─ docs/
-│  项目级 PRD 与网页/技术方案
+│  项目级材料
 ├─ our_requirements/
-│  原始需求材料、邮件、样例附件
-└─ maritime-service/
-   ├─ SKILL.md
-   ├─ README.md
-   ├─ 0-安装依赖.bat
-   ├─ 1-一键生成全部示例合同.bat
-   ├─ 2-一键生成空白Excel模板.bat
-   ├─ 3-把Excel拖到这里生成合同.bat
-   ├─ 4-把JSON拖到这里生成合同.bat
-   ├─ 5-一键自检.bat
-   ├─ 6-打开教程.bat
-   ├─ assets/
-   │  合同模板
-   ├─ examples/
-   │  示例 JSON 与 Excel
-   ├─ docs/
-   │  用户教程、实施方案、维护说明
-   ├─ references/
-   │  架构设计、路线图、流程目录
-   └─ scripts/
-      核心 Python 脚本
+│  原始需求材料
+├─ launch_ams_desktop_app.py
+│  桌面应用 Python 入口
+└─ 启动AMS桌面应用.bat
+   Windows 下的源码模式启动器
 ```
 
-## 最短上手路径
+## 当前推荐的阅读顺序
 
-这一段是写给“只想马上试一下的人”的。
+1. [desktop_app/README.md](./desktop_app/README.md)
+2. [maritime-service/开始看这里.md](./maritime-service/%E5%BC%80%E5%A7%8B%E7%9C%8B%E8%BF%99%E9%87%8C.md)
+3. [maritime-service/docs/00-如何验收这套skill.md](./maritime-service/docs/00-%E5%A6%82%E4%BD%95%E9%AA%8C%E6%94%B6%E8%BF%99%E5%A5%97skill.md)
+4. [maritime-service/docs/10-req2-如何验收.md](./maritime-service/docs/10-req2-%E5%A6%82%E4%BD%95%E9%AA%8C%E6%94%B6.md)
 
-### 方式一：完全不看代码，直接点批处理
+## 维护建议
 
-1. 先进入 [`maritime-service`](./maritime-service)
-2. 双击 `0-安装依赖.bat`
-3. 双击 `1-一键生成全部示例合同.bat`
-4. 去 `maritime-service/output/contracts/` 看有没有生成 4 份 Word 合同
-5. 双击 `5-一键自检.bat`
-6. 如果看到 4 条 `通过`，说明核心流程已经跑通
+这套仓库现在比较适合继续按三层结构往前扩：
 
-### 方式二：自己填 Excel 再生成
+1. `maritime-service/scripts`
+   负责业务 workflow
+2. `desktop_app/runtime.py`
+   负责把 workflow 封装成桌面动作
+3. `desktop_app/app.py`
+   负责把动作挂到 GUI
 
-1. 双击 `2-一键生成空白Excel模板.bat`
-2. 打开 `maritime-service/examples/workbooks/blank-contract-template.xlsx`
-3. 按教程填写一份测试业务
-4. 把这个 Excel 文件拖到 `3-把Excel拖到这里生成合同.bat`
-5. 去 `maritime-service/output/contracts/` 查看生成结果
-
-### 方式三：开发者命令行运行
-
-```powershell
-cd .\maritime-service
-python -m pip install -r .\requirements.txt
-python .\scripts\contract_workflow.py build-examples
-python .\scripts\contract_workflow.py verify-examples
-python .\scripts\contract_workflow.py make-workbook-template --output .\examples\workbooks\blank-contract-template.xlsx
-python .\scripts\contract_workflow.py from-json --input .\examples\contract_requests\domestic-forwarder-mu-chuang-362.json
-python .\scripts\contract_workflow.py from-workbook --input .\examples\workbooks\blank-contract-template.xlsx
-```
-
-## 5 分钟验收清单
-
-如果你要判断“这个仓库现在是不是能交付给别人试”，就按下面这套最短验收：
-
-1. 成功执行 `0-安装依赖.bat`
-2. 成功执行 `1-一键生成全部示例合同.bat`
-3. `maritime-service/output/contracts/` 下出现 4 份 `.docx`
-4. 成功执行 `5-一键自检.bat`
-5. 自检结果显示所有示例 `通过`
-6. 人工打开任意一个 Word，确认这些字段已经写进去：
-   - 合同编号
-   - 日期
-   - 船名
-   - 货描
-   - 装港
-   - 卸港
-   - laycan
-   - 费用条款
-   - 货物明细行
+这样后面继续做 req3、继续增强 req2、或者替换界面形态，都会更稳。
 
 更详细的验收步骤见：
 

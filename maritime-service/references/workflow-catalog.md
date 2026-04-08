@@ -1,4 +1,4 @@
-# Workflow Catalog
+﻿# Workflow Catalog
 
 This file lists broad workflow families for the first version of the skill. Replace or expand them with your real business processes over time.
 

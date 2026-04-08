@@ -1,4 +1,4 @@
-# Tool Contracts
+﻿# Tool Contracts
 
 Future maritime-service tools should follow these rules.
 

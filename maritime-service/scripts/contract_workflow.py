@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import re
 import shutil
 import sys
@@ -24,8 +25,9 @@ SKILL_ROOT = SCRIPT_DIR.parent
 ASSETS_DIR = SKILL_ROOT / "assets" / "contract_templates"
 EXAMPLES_DIR = SKILL_ROOT / "examples" / "contract_requests"
 EXAMPLE_WORKBOOK_DIR = SKILL_ROOT / "examples" / "workbooks"
-OUTPUT_DIR = SKILL_ROOT / "output" / "contracts"
-REPORT_DIR = SKILL_ROOT / "output" / "reports"
+DATA_ROOT = Path(os.environ.get("AMS_DATA_ROOT", str(SKILL_ROOT / "output"))).resolve()
+OUTPUT_DIR = DATA_ROOT / "contracts"
+REPORT_DIR = DATA_ROOT / "reports"
 REGISTRY_PATH = SCRIPT_DIR / "contract_template_registry.json"
 
 MONTHS_EN = {
@@ -444,11 +446,12 @@ def apply_optional_signature_overrides(doc: Document, template: dict[str, Any], 
         set_cell_text(table.rows[2].cells[1], request["signature_owner_detail"])
 
 
-def render_contract(request: dict[str, Any], output_dir: Path) -> RenderResult:
+def render_contract(request: dict[str, Any], output_dir: Path, summary_dir: Path | None = None) -> RenderResult:
     template = request["template"]
     doc = Document(template["template_path"])
     paragraphs = template["paragraphs"]
     output_dir = output_dir.resolve()
+    summary_dir = (summary_dir or REPORT_DIR).resolve()
 
     set_paragraph_text(doc.paragraphs[paragraphs["contract_no"]], f"CONTRACT NO.: {request['contract_no']}")
     set_paragraph_text(doc.paragraphs[paragraphs["date"]], f"DATED: {request['contract_date_en']}")
@@ -482,10 +485,10 @@ def render_contract(request: dict[str, Any], output_dir: Path) -> RenderResult:
     apply_optional_signature_overrides(doc, template, request)
 
     output_dir.mkdir(parents=True, exist_ok=True)
-    REPORT_DIR.mkdir(parents=True, exist_ok=True)
+    summary_dir.mkdir(parents=True, exist_ok=True)
     base_name = sanitize_filename(request["output_name"] or request["contract_no"])
     document_path = output_dir / f"{base_name}.docx"
-    summary_path = REPORT_DIR.resolve() / f"{base_name}.json"
+    summary_path = summary_dir / f"{base_name}.json"
     doc.save(document_path)
 
     summary = {
@@ -603,10 +606,12 @@ def build_parser() -> argparse.ArgumentParser:
     parser_json = subparsers.add_parser("from-json", help="从 JSON 请求生成合同")
     parser_json.add_argument("--input", required=True, help="JSON 请求文件路径")
     parser_json.add_argument("--output-dir", default=str(OUTPUT_DIR), help="输出目录")
+    parser_json.add_argument("--summary-dir", default=str(REPORT_DIR), help="JSON 摘要输出目录")
 
     parser_workbook = subparsers.add_parser("from-workbook", help="从 Excel 工作簿生成合同")
     parser_workbook.add_argument("--input", required=True, help="Excel 工作簿路径")
     parser_workbook.add_argument("--output-dir", default=str(OUTPUT_DIR), help="输出目录")
+    parser_workbook.add_argument("--summary-dir", default=str(REPORT_DIR), help="JSON 摘要输出目录")
 
     parser_make_workbook = subparsers.add_parser("make-workbook-template", help="生成 Excel 填写模板")
     parser_make_workbook.add_argument("--output", required=True, help="输出的 xlsx 路径")
@@ -646,7 +651,11 @@ def main(argv: list[str] | None = None) -> int:
 
         request = load_request_from_args(args)
         normalized_request = validate_request(request, registry)
-        result = render_contract(normalized_request, Path(args.output_dir))
+        result = render_contract(
+            normalized_request,
+            Path(args.output_dir),
+            Path(args.summary_dir),
+        )
         print_result(result)
         return 0
     except ContractValidationError as exc:

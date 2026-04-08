@@ -1,78 +1,75 @@
 # maritime-service
 
-这是 AMS 仓库里真正负责“执行业务动作”的 skill 目录。
+这一层是 AMS Assistant 的业务脚本层。
 
-当前已经落地的第一条真实流程是：
+如果你把整个仓库理解成一套本地桌面工具，那么：
 
-1. `req1 系统出合同`
+- `maritime-service/`
+  负责“真正做事”
+- `desktop_app/`
+  负责“让普通用户更容易用”
 
-它支持：
+## 当前包含的内容
 
-1. 从 JSON 生成合同
-2. 从 Excel 生成合同
-3. 批量生成示例合同
-4. 自动校验示例输出
-5. 生成空白 Excel 填写模板
+### req1 系统出合同
 
-## 先看哪里
+- Excel / JSON 输入
+- 合同模板注册表
+- Word 合同生成
+- 示例与自检
 
-### 普通使用者
+### req2 自动查通关
 
-1. 看 [`开始看这里.md`](./%E5%BC%80%E5%A7%8B%E7%9C%8B%E8%BF%99%E9%87%8C.md)
-2. 看 [`docs/01-小学生级别使用教程.md`](./docs/01-%E5%B0%8F%E5%AD%A6%E7%94%9F%E7%BA%A7%E5%88%AB%E4%BD%BF%E7%94%A8%E6%95%99%E7%A8%8B.md)
-3. 直接点批处理文件
+- Excel 模板与回填
+- 示例与自检
+- 网站登录态保存
+- 检查登录态
+- 单票查询
+- 整表自动回填
 
-### 维护者
+### req3 入口预留
 
-1. 看 [`SKILL.md`](./SKILL.md)
-2. 看 [`references/contract-generation.md`](./references/contract-generation.md)
-3. 看 [`docs/03-开发者维护说明.md`](./docs/03-%E5%BC%80%E5%8F%91%E8%80%85%E7%BB%B4%E6%8A%A4%E8%AF%B4%E6%98%8E.md)
+- 已预留目录和入口
+- 后续可以继续接船期表自动化
 
-## 目录说明
+## 最常用入口
 
-```text
-maritime-service/
-├─ assets/contract_templates/
-│  合同模板
-├─ docs/
-│  用户教程、维护说明、实施方案
-├─ examples/
-│  示例 JSON、示例 Excel
-├─ output/
-│  运行后输出的合同与报告
-├─ references/
-│  架构、路线图、工作流设计
-├─ scripts/
-│  主要 Python 脚本
-├─ 0-安装依赖.bat
-├─ 1-一键生成全部示例合同.bat
-├─ 2-一键生成空白Excel模板.bat
-├─ 3-把Excel拖到这里生成合同.bat
-├─ 4-把JSON拖到这里生成合同.bat
-├─ 5-一键自检.bat
-├─ 6-打开教程.bat
-└─ SKILL.md
-```
+### req1
 
-## 最常用命令
+- `0-安装依赖.bat`
+- `1-一键生成全部示例合同.bat`
+- `2-一键生成空白Excel模板.bat`
+- `3-把Excel拖到这里生成合同.bat`
+- `5-一键自检.bat`
+
+### req2
+
+- `7-一键生成req2示例结果.bat`
+- `10-一键自检req2.bat`
+- `11-首次登录并保存req2网站登录态.bat`
+- `12-检查req2网站登录态.bat`
+- `13-把req2工作簿拖到这里从网站自动查询并回填.bat`
+- `14-输入提单号测试req2网站查询.bat`
+
+## 文档入口
+
+- [开始看这里.md](./%E5%BC%80%E5%A7%8B%E7%9C%8B%E8%BF%99%E9%87%8C.md)
+- [docs/00-如何验收这套skill.md](./docs/00-%E5%A6%82%E4%BD%95%E9%AA%8C%E6%94%B6%E8%BF%99%E5%A5%97skill.md)
+- [docs/01-小学生级别使用教程.md](./docs/01-%E5%B0%8F%E5%AD%A6%E7%94%9F%E7%BA%A7%E5%88%AB%E4%BD%BF%E7%94%A8%E6%95%99%E7%A8%8B.md)
+- [docs/09-req2-自动查通关使用教程.md](./docs/09-req2-%E8%87%AA%E5%8A%A8%E6%9F%A5%E9%80%9A%E5%85%B3%E4%BD%BF%E7%94%A8%E6%95%99%E7%A8%8B.md)
+- [docs/11-req2网页登录使用教程.md](./docs/11-req2%E7%BD%91%E9%A1%B5%E7%99%BB%E5%BD%95%E4%BD%BF%E7%94%A8%E6%95%99%E7%A8%8B.md)
+
+## 命令行运行
 
 ```powershell
 cd .\maritime-service
 python -m pip install -r .\requirements.txt
 python .\scripts\contract_workflow.py build-examples
 python .\scripts\contract_workflow.py verify-examples
-python .\scripts\contract_workflow.py make-workbook-template --output .\examples\workbooks\blank-contract-template.xlsx
-python .\scripts\contract_workflow.py from-json --input .\examples\contract_requests\domestic-forwarder-mu-chuang-362.json
+python .\scripts\clearance_workflow.py build-examples
+python .\scripts\clearance_workflow.py verify-examples
 ```
 
-## Windows 用户建议
+## 说明
 
-如果你不想敲命令，直接用这些文件：
-
-1. `0-安装依赖.bat`
-2. `1-一键生成全部示例合同.bat`
-3. `2-一键生成空白Excel模板.bat`
-4. `3-把Excel拖到这里生成合同.bat`
-5. `4-把JSON拖到这里生成合同.bat`
-6. `5-一键自检.bat`
-7. `6-打开教程.bat`
+如果你是普通用户，优先考虑用仓库根目录的桌面应用入口，而不是长期停留在这里逐个点脚本。

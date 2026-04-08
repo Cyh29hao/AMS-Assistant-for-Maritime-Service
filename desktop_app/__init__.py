@@ -1,0 +1,1 @@
+"""AMS desktop application package."""

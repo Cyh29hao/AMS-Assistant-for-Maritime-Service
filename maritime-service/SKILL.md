@@ -1,4 +1,4 @@
----
+﻿﻿---
 name: maritime-service
 description: Use when handling maritime-service operations, planning shipping-service workflows, triaging vessel or document tasks, coordinating vendors, or designing automations for recurring service requests.
 ---
@@ -9,7 +9,11 @@ description: Use when handling maritime-service operations, planning shipping-se
 
 Use this skill to turn a maritime-service request into a controlled workflow that an agent can plan, execute with tools, and escalate for approval when needed. The skill is intentionally broad in its first version so it can support discovery, semi-automation, and later full automation.
 
-The first production-leaning workflow in this skill is now `req1 系统出合同`, implemented as a Word-contract generation workflow with both JSON and Excel entrypoints.
+The first production-leaning workflow in this skill is `req1 系统出合同`, implemented as a Word-contract generation workflow with both JSON and Excel entrypoints.
+
+The second production-leaning workflow is `req2 自动查通关并回填表格`, implemented as an Excel update workflow that reads business rows, evaluates customs-clearance query results, updates eligible rows to `已通关`, and emits structured reports.
+
+The latest extension of `req2` is a website session layer for `dp.eptrade.cn`, which can capture a reusable login session, validate it, query the real `pss026` maritime-release endpoint by B/L number, and feed those results back into the accepted req2 workbook-update flow.
 
 ## When To Use
 
@@ -75,6 +79,9 @@ Read only what you need:
 - `references/workflow-catalog.md` for example workflow families and sample deliverables
 - `references/document-readiness-check.md` for the first implemented real subprocess
 - `references/contract-generation.md` for the implemented contract-generation workflow
+- `references/clearance-status-update.md` for the implemented req2 clearance-update workflow
+- `docs/11-req2网页登录使用教程.md` for the real-site login and query workflow
+- `docs/12-req2网页登录如何验收.md` for the req2 website-layer acceptance steps
 - `references/tool-contracts.md` for future API and tool design rules
 - `references/build-roadmap.md` for how to grow this skill from prototype to production
 
@@ -83,6 +90,7 @@ Read only what you need:
 - `scripts/workflow_demo.py` builds a sample execution plan from a task payload
 - `scripts/validate_document_bundle.py` runs the first real document-readiness check
 - `scripts/contract_workflow.py` runs the real contract-generation workflow
+- `scripts/clearance_workflow.py` runs the req2 customs-clearance update workflow
 - `scripts/example-task.json` is a starter input for local testing
 - `scripts/example-document-task.json` is a starter document-bundle payload
 - `scripts/example-document-task-ready.json` is a passing payload for local verification
@@ -137,3 +145,31 @@ This workflow is designed for two audiences:
 - developers or agents who prefer structured JSON
 
 See `docs/00-如何验收这套skill.md` and `docs/01-小学生级别使用教程.md` for human-facing instructions.
+
+## Real Workflow: Req2 Customs Clearance Update
+
+Use this workflow when the operator needs to:
+
+- identify uncleared bills of lading in an operational workbook
+- compare them against customs-clearance query results
+- update `备货` to `已通关` only when the result is actually released
+- backfill `PCS` and `MT`
+- preserve an auditable workbook and report trail
+
+Current local entrypoints:
+
+```bash
+python scripts/clearance_workflow.py build-examples
+python scripts/clearance_workflow.py verify-examples
+python scripts/clearance_workflow.py from-workbook --input examples/clearance_workbooks/blank-clearance-template.xlsx
+```
+
+This workflow currently focuses on the stable half of req2:
+
+- workbook normalization
+- deterministic update rules
+- output reporting
+
+The live website-query layer is intentionally left as the next integration step, because its selectors, login stability, and anti-bot constraints still need real-environment verification.
+
+See `docs/09-req2-自动查通关使用教程.md` and `docs/10-req2-如何验收.md` for operator-facing instructions.

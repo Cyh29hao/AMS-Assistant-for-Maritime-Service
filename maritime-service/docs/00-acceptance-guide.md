@@ -1,4 +1,4 @@
-﻿# Acceptance Guide
+﻿﻿# Acceptance Guide
 
 Use this short guide if you want the fastest possible test.
 

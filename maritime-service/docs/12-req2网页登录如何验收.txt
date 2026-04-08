@@ -1,0 +1,23 @@
+﻿req2 网页登录层如何验收
+
+最快验收法：
+1. 双击 0-安装依赖.bat
+2. 双击 11-首次登录并保存req2网站登录态.bat
+3. 在打开的浏览器里完成真实登录
+4. 双击 12-检查req2网站登录态.bat
+5. 双击 14-输入提单号测试req2网站查询.bat
+6. 最后把一个 req2 工作簿拖到 13-把req2工作簿拖到这里从网站自动查询并回填.bat
+
+重点验收点：
+1. output/clearance/site_session/ 下出现：
+   - req2_site_session.json
+   - req2_site_storage_state.json
+   - req2_site_login_ok.png
+2. output/clearance/site_checks/ 下出现：
+   - req2_site_check.json
+   - req2_site_check.txt
+3. 14 号批处理能查出至少一票真实结果
+4. 13 号批处理能生成：
+   - output/clearance/updated 下的新 Excel
+   - output/clearance/site_query_results 下的网站查询报告
+   - output/clearance/reports 下的回填结果报告

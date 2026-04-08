@@ -4,6 +4,13 @@ __pycache__/
 *.pyd
 .DS_Store
 Thumbs.db
+desktop_release_build/
+普通用户体验区-桌面应用版-release预览/
+普通用户体验区-req1一键出合同/
+README.local-copy.md
+desktop-self-test-repo.json
+desktop-self-test-workspace/
+maritime-service/blank-contract-template.xlsx
 
 maritime-service/output/contracts/*
 !maritime-service/output/contracts/.gitkeep
@@ -12,3 +19,15 @@ maritime-service/output/contracts/_verification/*
 !maritime-service/output/contracts/_verification/.gitkeep
 maritime-service/output/reports/*
 !maritime-service/output/reports/.gitkeep
+maritime-service/output/clearance/*
+!maritime-service/output/clearance/.gitkeep
+maritime-service/output/clearance/reports/*
+!maritime-service/output/clearance/reports/.gitkeep
+maritime-service/output/clearance/site_checks/*
+!maritime-service/output/clearance/site_checks/.gitkeep
+maritime-service/output/clearance/site_query_results/*
+!maritime-service/output/clearance/site_query_results/.gitkeep
+maritime-service/output/clearance/site_session/*
+!maritime-service/output/clearance/site_session/.gitkeep
+maritime-service/output/clearance/updated/*
+!maritime-service/output/clearance/updated/.gitkeep

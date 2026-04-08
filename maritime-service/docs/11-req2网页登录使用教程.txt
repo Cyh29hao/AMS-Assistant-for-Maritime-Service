@@ -1,0 +1,31 @@
+﻿req2 网页登录版使用教程
+
+这份教程讲的是：让 req2 从“手工把网站结果贴进 Excel”升级成“自动登录网站、自动查询、自动回填 Excel”。
+
+核心入口：
+1. 11-首次登录并保存req2网站登录态.bat
+2. 12-检查req2网站登录态.bat
+3. 13-把req2工作簿拖到这里从网站自动查询并回填.bat
+4. 14-输入提单号测试req2网站查询.bat
+
+最短上手路径：
+1. 双击 0-安装依赖.bat
+2. 双击 11-首次登录并保存req2网站登录态.bat
+3. 在打开的浏览器里正常登录 https://dp.eptrade.cn/#/
+4. 等脚本自动保存登录态
+5. 双击 12-检查req2网站登录态.bat
+6. 把 req2 工作簿拖到 13-把req2工作簿拖到这里从网站自动查询并回填.bat
+
+第一次登录成功后，会生成：
+- output/clearance/site_session/req2_site_session.json
+- output/clearance/site_session/req2_site_storage_state.json
+- output/clearance/site_session/req2_site_login_ok.png
+
+检查登录态后，会生成：
+- output/clearance/site_checks/req2_site_check.json
+- output/clearance/site_checks/req2_site_check.txt
+
+自动回填后，重点看这些目录：
+- output/clearance/updated
+- output/clearance/site_query_results
+- output/clearance/reports
