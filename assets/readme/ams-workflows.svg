@@ -21,7 +21,7 @@
       <stop stop-color="#3DD9B8"/>
       <stop offset="1" stop-color="#64A8FF"/>
     </linearGradient>
-    <filter id="shadow2" x="110" y="150" width="1380" height="616" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+    <filter id="shadow2" x="110" y="150" width="1380" height="640" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
       <feDropShadow dx="0" dy="24" stdDeviation="18" flood-color="#010B16" flood-opacity="0.36"/>
     </filter>
   </defs>
@@ -30,54 +30,62 @@
   <circle cx="180" cy="720" r="240" fill="#103D5B" fill-opacity="0.28"/>
   <circle cx="1390" cy="180" r="210" fill="#2A7C9B" fill-opacity="0.18"/>
 
-  <text x="118" y="122" fill="#87D7FF" font-family="Segoe UI, PingFang SC, Microsoft YaHei, Arial, sans-serif" font-size="24" font-weight="700" letter-spacing="4">ONE DESKTOP APP, THREE BUSINESS LANES</text>
-  <text x="118" y="214" fill="#F8FBFF" font-family="Segoe UI, PingFang SC, Microsoft YaHei, Arial, sans-serif" font-size="64" font-weight="800">What users actually do inside AMS</text>
-  <text x="118" y="264" fill="#CDE2F8" font-family="Segoe UI, PingFang SC, Microsoft YaHei, Arial, sans-serif" font-size="28" font-weight="500">Low-friction inputs, visible outputs, and a cleaner path from business file to finished result.</text>
+  <text x="118" y="122" fill="#87D7FF" font-family="Segoe UI, PingFang SC, Microsoft YaHei, Arial, sans-serif" font-size="22" font-weight="700" letter-spacing="4">ONE DESKTOP APP, THREE BUSINESS LANES</text>
+  <text x="118" y="210" fill="#F8FBFF" font-family="Segoe UI, PingFang SC, Microsoft YaHei, Arial, sans-serif" font-size="58" font-weight="800">What users actually do inside AMS</text>
+  <text x="118" y="258" fill="#CDE2F8" font-family="Segoe UI, PingFang SC, Microsoft YaHei, Arial, sans-serif" font-size="24" font-weight="500">Low-friction inputs, visible outputs, and a cleaner path</text>
+  <text x="118" y="292" fill="#CDE2F8" font-family="Segoe UI, PingFang SC, Microsoft YaHei, Arial, sans-serif" font-size="24" font-weight="500">from business file to finished result.</text>
 
   <g filter="url(#shadow2)">
-    <rect x="126" y="324" width="392" height="388" rx="34" fill="url(#cardA)" stroke="#6EE7F9" stroke-opacity="0.16"/>
-    <rect x="604" y="324" width="392" height="388" rx="34" fill="url(#cardB)" stroke="#60A5FA" stroke-opacity="0.16"/>
-    <rect x="1082" y="324" width="392" height="388" rx="34" fill="url(#cardC)" stroke="#FBBF24" stroke-opacity="0.18"/>
+    <rect x="126" y="334" width="384" height="404" rx="34" fill="url(#cardA)" stroke="#6EE7F9" stroke-opacity="0.16"/>
+    <rect x="608" y="334" width="384" height="404" rx="34" fill="url(#cardB)" stroke="#60A5FA" stroke-opacity="0.16"/>
+    <rect x="1090" y="334" width="384" height="404" rx="34" fill="url(#cardC)" stroke="#FBBF24" stroke-opacity="0.18"/>
 
-    <text x="160" y="380" fill="#8BE8DE" font-family="Segoe UI, PingFang SC, Microsoft YaHei, Arial, sans-serif" font-size="18" font-weight="700">REQ1</text>
-    <text x="160" y="430" fill="#FFFFFF" font-family="Segoe UI, PingFang SC, Microsoft YaHei, Arial, sans-serif" font-size="38" font-weight="800">System Contract Output</text>
-    <text x="160" y="474" fill="#D2E4F8" font-family="Segoe UI, PingFang SC, Microsoft YaHei, Arial, sans-serif" font-size="21" font-weight="500">Fill the workbook once, generate the contract once,</text>
-    <text x="160" y="504" fill="#D2E4F8" font-family="Segoe UI, PingFang SC, Microsoft YaHei, Arial, sans-serif" font-size="21" font-weight="500">and keep a stable “latest output” entry for acceptance.</text>
-    <rect x="160" y="548" width="138" height="42" rx="21" fill="#FFFFFF" fill-opacity="0.08"/>
-    <rect x="320" y="548" width="128" height="42" rx="21" fill="#FFFFFF" fill-opacity="0.08"/>
-    <text x="191" y="575" fill="#E8F4FF" font-family="Segoe UI, PingFang SC, Microsoft YaHei, Arial, sans-serif" font-size="18" font-weight="700">Excel</text>
-    <text x="351" y="575" fill="#E8F4FF" font-family="Segoe UI, PingFang SC, Microsoft YaHei, Arial, sans-serif" font-size="18" font-weight="700">Word</text>
-    <text x="160" y="635" fill="#A7C7E8" font-family="Consolas, Segoe UI, Arial, monospace" font-size="17" font-weight="600">contract-input.xlsx</text>
-    <text x="160" y="665" fill="#E7F2FD" font-family="Consolas, Segoe UI, Arial, monospace" font-size="17" font-weight="600">00-Latest-Contract.docx</text>
+    <text x="160" y="388" fill="#8BE8DE" font-family="Segoe UI, PingFang SC, Microsoft YaHei, Arial, sans-serif" font-size="17" font-weight="700">REQ1</text>
+    <text x="160" y="438" fill="#FFFFFF" font-family="Segoe UI, PingFang SC, Microsoft YaHei, Arial, sans-serif" font-size="32" font-weight="800">System Contract</text>
+    <text x="160" y="476" fill="#FFFFFF" font-family="Segoe UI, PingFang SC, Microsoft YaHei, Arial, sans-serif" font-size="32" font-weight="800">Output</text>
+    <text x="160" y="522" fill="#D2E4F8" font-family="Segoe UI, PingFang SC, Microsoft YaHei, Arial, sans-serif" font-size="18" font-weight="500">Fill the workbook once.</text>
+    <text x="160" y="550" fill="#D2E4F8" font-family="Segoe UI, PingFang SC, Microsoft YaHei, Arial, sans-serif" font-size="18" font-weight="500">Generate the contract once.</text>
+    <text x="160" y="578" fill="#D2E4F8" font-family="Segoe UI, PingFang SC, Microsoft YaHei, Arial, sans-serif" font-size="18" font-weight="500">Keep a stable latest-result entry.</text>
+    <rect x="160" y="614" width="128" height="40" rx="20" fill="#FFFFFF" fill-opacity="0.08"/>
+    <rect x="304" y="614" width="112" height="40" rx="20" fill="#FFFFFF" fill-opacity="0.08"/>
+    <text x="224" y="640" text-anchor="middle" fill="#E8F4FF" font-family="Segoe UI, PingFang SC, Microsoft YaHei, Arial, sans-serif" font-size="17" font-weight="700">Excel</text>
+    <text x="360" y="640" text-anchor="middle" fill="#E8F4FF" font-family="Segoe UI, PingFang SC, Microsoft YaHei, Arial, sans-serif" font-size="17" font-weight="700">Word</text>
+    <text x="160" y="692" fill="#A7C7E8" font-family="Consolas, Segoe UI, Arial, monospace" font-size="15" font-weight="600">contract-input.xlsx</text>
+    <text x="160" y="718" fill="#E7F2FD" font-family="Consolas, Segoe UI, Arial, monospace" font-size="15" font-weight="600">00-Latest-Contract.docx</text>
 
-    <text x="638" y="380" fill="#97C8FF" font-family="Segoe UI, PingFang SC, Microsoft YaHei, Arial, sans-serif" font-size="18" font-weight="700">REQ2</text>
-    <text x="638" y="430" fill="#FFFFFF" font-family="Segoe UI, PingFang SC, Microsoft YaHei, Arial, sans-serif" font-size="38" font-weight="800">Clearance Query and Backfill</text>
-    <text x="638" y="474" fill="#D2E4F8" font-family="Segoe UI, PingFang SC, Microsoft YaHei, Arial, sans-serif" font-size="21" font-weight="500">Save login state locally, test one bill, then update</text>
-    <text x="638" y="504" fill="#D2E4F8" font-family="Segoe UI, PingFang SC, Microsoft YaHei, Arial, sans-serif" font-size="21" font-weight="500">the workbook and leave a report behind.</text>
-    <rect x="638" y="548" width="146" height="42" rx="21" fill="#FFFFFF" fill-opacity="0.08"/>
-    <rect x="804" y="548" width="140" height="42" rx="21" fill="#FFFFFF" fill-opacity="0.08"/>
-    <text x="669" y="575" fill="#E8F4FF" font-family="Segoe UI, PingFang SC, Microsoft YaHei, Arial, sans-serif" font-size="18" font-weight="700">Session</text>
-    <text x="841" y="575" fill="#E8F4FF" font-family="Segoe UI, PingFang SC, Microsoft YaHei, Arial, sans-serif" font-size="18" font-weight="700">Workbook</text>
-    <text x="638" y="635" fill="#A7C7E8" font-family="Consolas, Segoe UI, Arial, monospace" font-size="17" font-weight="600">login-check → site-query</text>
-    <text x="638" y="665" fill="#E7F2FD" font-family="Consolas, Segoe UI, Arial, monospace" font-size="17" font-weight="600">00-Latest-Clearance-Workbook.xlsx</text>
+    <text x="642" y="388" fill="#97C8FF" font-family="Segoe UI, PingFang SC, Microsoft YaHei, Arial, sans-serif" font-size="17" font-weight="700">REQ2</text>
+    <text x="642" y="438" fill="#FFFFFF" font-family="Segoe UI, PingFang SC, Microsoft YaHei, Arial, sans-serif" font-size="32" font-weight="800">Clearance Query</text>
+    <text x="642" y="476" fill="#FFFFFF" font-family="Segoe UI, PingFang SC, Microsoft YaHei, Arial, sans-serif" font-size="32" font-weight="800">and Backfill</text>
+    <text x="642" y="522" fill="#D2E4F8" font-family="Segoe UI, PingFang SC, Microsoft YaHei, Arial, sans-serif" font-size="18" font-weight="500">Save login state locally.</text>
+    <text x="642" y="550" fill="#D2E4F8" font-family="Segoe UI, PingFang SC, Microsoft YaHei, Arial, sans-serif" font-size="18" font-weight="500">Test one bill before bulk work.</text>
+    <text x="642" y="578" fill="#D2E4F8" font-family="Segoe UI, PingFang SC, Microsoft YaHei, Arial, sans-serif" font-size="18" font-weight="500">Write the result back to the sheet.</text>
+    <rect x="642" y="614" width="132" height="40" rx="20" fill="#FFFFFF" fill-opacity="0.08"/>
+    <rect x="790" y="614" width="146" height="40" rx="20" fill="#FFFFFF" fill-opacity="0.08"/>
+    <text x="708" y="640" text-anchor="middle" fill="#E8F4FF" font-family="Segoe UI, PingFang SC, Microsoft YaHei, Arial, sans-serif" font-size="17" font-weight="700">Session</text>
+    <text x="863" y="640" text-anchor="middle" fill="#E8F4FF" font-family="Segoe UI, PingFang SC, Microsoft YaHei, Arial, sans-serif" font-size="17" font-weight="700">Workbook</text>
+    <text x="642" y="692" fill="#A7C7E8" font-family="Consolas, Segoe UI, Arial, monospace" font-size="15" font-weight="600">login-check to site-query</text>
+    <text x="642" y="718" fill="#E7F2FD" font-family="Consolas, Segoe UI, Arial, monospace" font-size="15" font-weight="600">00-Latest-Clearance-Workbook.xlsx</text>
 
-    <text x="1116" y="380" fill="#FFD089" font-family="Segoe UI, PingFang SC, Microsoft YaHei, Arial, sans-serif" font-size="18" font-weight="700">REQ3</text>
-    <text x="1116" y="430" fill="#FFFFFF" font-family="Segoe UI, PingFang SC, Microsoft YaHei, Arial, sans-serif" font-size="38" font-weight="800">Lineup and Port Matrix</text>
-    <text x="1116" y="474" fill="#D2E4F8" font-family="Segoe UI, PingFang SC, Microsoft YaHei, Arial, sans-serif" font-size="21" font-weight="500">The entry is already reserved so future lineup,</text>
-    <text x="1116" y="504" fill="#D2E4F8" font-family="Segoe UI, PingFang SC, Microsoft YaHei, Arial, sans-serif" font-size="21" font-weight="500">matrix, and report logic can land in the same app.</text>
-    <rect x="1116" y="548" width="136" height="42" rx="21" fill="#FFFFFF" fill-opacity="0.08"/>
-    <rect x="1272" y="548" width="126" height="42" rx="21" fill="#FFFFFF" fill-opacity="0.08"/>
-    <text x="1147" y="575" fill="#E8F4FF" font-family="Segoe UI, PingFang SC, Microsoft YaHei, Arial, sans-serif" font-size="18" font-weight="700">Lineup</text>
-    <text x="1307" y="575" fill="#E8F4FF" font-family="Segoe UI, PingFang SC, Microsoft YaHei, Arial, sans-serif" font-size="18" font-weight="700">Future</text>
-    <text x="1116" y="635" fill="#A7C7E8" font-family="Consolas, Segoe UI, Arial, monospace" font-size="17" font-weight="600">reserved workflow slot</text>
-    <text x="1116" y="665" fill="#E7F2FD" font-family="Consolas, Segoe UI, Arial, monospace" font-size="17" font-weight="600">shared desktop entry point</text>
+    <text x="1124" y="388" fill="#FFD089" font-family="Segoe UI, PingFang SC, Microsoft YaHei, Arial, sans-serif" font-size="17" font-weight="700">REQ3</text>
+    <text x="1124" y="438" fill="#FFFFFF" font-family="Segoe UI, PingFang SC, Microsoft YaHei, Arial, sans-serif" font-size="32" font-weight="800">Lineup and Port</text>
+    <text x="1124" y="476" fill="#FFFFFF" font-family="Segoe UI, PingFang SC, Microsoft YaHei, Arial, sans-serif" font-size="32" font-weight="800">Matrix</text>
+    <text x="1124" y="522" fill="#D2E4F8" font-family="Segoe UI, PingFang SC, Microsoft YaHei, Arial, sans-serif" font-size="18" font-weight="500">The entry point already exists.</text>
+    <text x="1124" y="550" fill="#D2E4F8" font-family="Segoe UI, PingFang SC, Microsoft YaHei, Arial, sans-serif" font-size="18" font-weight="500">Future lineup logic can land here.</text>
+    <text x="1124" y="578" fill="#D2E4F8" font-family="Segoe UI, PingFang SC, Microsoft YaHei, Arial, sans-serif" font-size="18" font-weight="500">The same app can host the next step.</text>
+    <rect x="1124" y="614" width="124" height="40" rx="20" fill="#FFFFFF" fill-opacity="0.08"/>
+    <rect x="1264" y="614" width="112" height="40" rx="20" fill="#FFFFFF" fill-opacity="0.08"/>
+    <text x="1186" y="640" text-anchor="middle" fill="#E8F4FF" font-family="Segoe UI, PingFang SC, Microsoft YaHei, Arial, sans-serif" font-size="17" font-weight="700">Lineup</text>
+    <text x="1320" y="640" text-anchor="middle" fill="#E8F4FF" font-family="Segoe UI, PingFang SC, Microsoft YaHei, Arial, sans-serif" font-size="17" font-weight="700">Future</text>
+    <text x="1124" y="692" fill="#A7C7E8" font-family="Consolas, Segoe UI, Arial, monospace" font-size="15" font-weight="600">reserved workflow slot</text>
+    <text x="1124" y="718" fill="#E7F2FD" font-family="Consolas, Segoe UI, Arial, monospace" font-size="15" font-weight="600">shared desktop entry point</text>
   </g>
 
-  <path d="M522 518H582" stroke="url(#arrow)" stroke-width="8" stroke-linecap="round"/>
-  <path d="M1000 518H1060" stroke="url(#arrow)" stroke-width="8" stroke-linecap="round"/>
-  <path d="M570 518L548 500M570 518L548 536" stroke="url(#arrow)" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
-  <path d="M1048 518L1026 500M1048 518L1026 536" stroke="url(#arrow)" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M530 536H590" stroke="url(#arrow)" stroke-width="8" stroke-linecap="round"/>
+  <path d="M1012 536H1072" stroke="url(#arrow)" stroke-width="8" stroke-linecap="round"/>
+  <path d="M578 536L556 518M578 536L556 554" stroke="url(#arrow)" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M1060 536L1038 518M1060 536L1038 554" stroke="url(#arrow)" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
 
-  <rect x="126" y="758" width="1348" height="74" rx="26" fill="#FFFFFF" fill-opacity="0.05" stroke="#FFFFFF" stroke-opacity="0.08"/>
-  <text x="164" y="805" fill="#DDF1FF" font-family="Segoe UI, PingFang SC, Microsoft YaHei, Arial, sans-serif" font-size="22" font-weight="700">Local workspace • login state stays on device • fixed “latest result” entries • easier release and acceptance flow</text>
+  <rect x="126" y="772" width="1348" height="88" rx="26" fill="#FFFFFF" fill-opacity="0.05" stroke="#FFFFFF" stroke-opacity="0.08"/>
+  <text x="164" y="817" fill="#DDF1FF" font-family="Segoe UI, PingFang SC, Microsoft YaHei, Arial, sans-serif" font-size="20" font-weight="700">Local workspace, local session, fixed latest-result entry, and an easier release path.</text>
+  <text x="164" y="844" fill="#BFD8F2" font-family="Segoe UI, PingFang SC, Microsoft YaHei, Arial, sans-serif" font-size="18" font-weight="500">One desktop entry point keeps day-to-day maritime operations easier to teach, use, and accept.</text>
 </svg>
