@@ -22,7 +22,7 @@ from desktop_app.excel_sync_engine import (
 
 
 APP_NAME = "AMS Assistant"
-APP_VERSION = "0.3.1"
+APP_VERSION = "0.4.0"
 APP_REPO_URL = "https://github.com/Cyh29hao/AMS-Assistant-for-Maritime-Service"
 APP_RELEASE_API = "https://api.github.com/repos/Cyh29hao/AMS-Assistant-for-Maritime-Service/releases/latest"
 RELEASE_PACKAGE_PREFIX = "AMS-Assistant-Desktop-v"

@@ -73,14 +73,15 @@ class ExcelSyncPanel:
         self.formula_var = tk.StringVar(value="values")
 
     def _build_ui(self) -> None:
-        intro = ttk.Labelframe(self.parent, text="功能说明", padding=14, bootstyle="info")
+        intro = ttk.Frame(self.parent, padding=16, bootstyle="light", borderwidth=1, relief="solid")
         intro.pack(fill=X, pady=(0, 12))
+        ttk.Label(intro, text="同步任务说明", font=("Microsoft YaHei UI", 13, "bold")).pack(anchor="w")
         ttk.Label(
             intro,
             text="把一个 Excel 的指定工作表同步到另一个 Excel。现在默认更适合“几乎整张表复制过去，只排除少数几列”的场景，同时会尽量保留隐藏行、空行和表格结构。",
             bootstyle="secondary",
             wraplength=980,
-        ).pack(anchor="w")
+        ).pack(anchor="w", pady=(6, 0))
         intro_buttons = ttk.Frame(intro)
         intro_buttons.pack(fill=X, pady=(10, 0))
         ttk.Button(intro_buttons, text="打开功能说明", bootstyle="info", command=lambda: self.open_help("sync")).pack(side=LEFT, padx=4)
@@ -94,13 +95,16 @@ class ExcelSyncPanel:
         top.columnconfigure(1, weight=16)
         top.rowconfigure(0, weight=1)
 
-        left = ttk.Labelframe(top, text="同步任务", padding=12, bootstyle="primary")
+        left = ttk.Frame(top, padding=12, bootstyle="light", borderwidth=1, relief="solid")
         left.grid(row=0, column=0, sticky="nsew", padx=(0, 8))
         left.columnconfigure(0, weight=1)
-        left.rowconfigure(1, weight=1)
+        left.rowconfigure(2, weight=1)
+
+        ttk.Label(left, text="同步任务", font=("Microsoft YaHei UI", 13, "bold")).grid(row=0, column=0, sticky="w")
+        ttk.Label(left, text="左边看任务列表，右边改规则和字段。", bootstyle="secondary").grid(row=1, column=0, sticky="w", pady=(4, 10))
 
         toolbar = ttk.Frame(left)
-        toolbar.grid(row=0, column=0, sticky="ew", pady=(0, 10))
+        toolbar.grid(row=0, column=1, sticky="e", pady=(0, 10))
         self.monitor_button = ttk.Button(toolbar, text="暂停监控", bootstyle="warning", command=self._toggle_monitoring)
         self.monitor_button.pack(side=LEFT)
         ttk.Button(toolbar, text="新建任务", bootstyle="success", command=self._new_task).pack(side=LEFT, padx=(8, 0))
@@ -118,17 +122,19 @@ class ExcelSyncPanel:
             self.tree.column(key, width=width, anchor="center" if key == "enabled" else "w")
         tree_scroll = ttk.Scrollbar(left, orient="vertical", command=self.tree.yview)
         self.tree.configure(yscrollcommand=tree_scroll.set)
-        self.tree.grid(row=1, column=0, sticky="nsew")
-        tree_scroll.grid(row=1, column=1, sticky="ns")
+        self.tree.grid(row=2, column=0, sticky="nsew")
+        tree_scroll.grid(row=2, column=1, sticky="ns")
         self.tree.bind("<<TreeviewSelect>>", self._on_select)
 
         self.status_label = ttk.Label(left, text="监控中", bootstyle="secondary")
-        self.status_label.grid(row=2, column=0, sticky="w", pady=(10, 0))
+        self.status_label.grid(row=3, column=0, sticky="w", pady=(10, 0))
 
-        right = ttk.Labelframe(top, text="任务编辑器", padding=12, bootstyle="light")
+        right = ttk.Frame(top, padding=12, bootstyle="light", borderwidth=1, relief="solid")
         right.grid(row=0, column=1, sticky="nsew")
         right.columnconfigure(1, weight=1)
-        row = 0
+        ttk.Label(right, text="任务编辑器", font=("Microsoft YaHei UI", 13, "bold")).grid(row=0, column=0, sticky="w")
+        ttk.Label(right, text="这里决定源表、目标表、列和同步方式。", bootstyle="secondary").grid(row=0, column=1, sticky="e")
+        row = 1
 
         ttk.Label(right, text="任务名称").grid(row=row, column=0, sticky="w", pady=4)
         ttk.Entry(right, textvariable=self.name_var).grid(row=row, column=1, sticky="ew", pady=4)
@@ -270,11 +276,13 @@ class ExcelSyncPanel:
         ttk.Button(actions, text="复制任务", bootstyle="secondary", command=self._copy_task).pack(side=LEFT, padx=(8, 0))
         ttk.Button(actions, text="删除任务", bootstyle="danger", command=self._delete_task).pack(side=LEFT, padx=(8, 0))
 
-        log_box = ttk.Labelframe(self.parent, text="最近日志", padding=10, bootstyle="secondary")
+        log_box = ttk.Frame(self.parent, padding=10, bootstyle="light", borderwidth=1, relief="solid")
         log_box.pack(fill=BOTH, expand=False, pady=(12, 0))
+        ttk.Label(log_box, text="最近日志", font=("Microsoft YaHei UI", 13, "bold")).pack(anchor="w")
         self.log_text = tk.Text(log_box, height=10, wrap="word", state="disabled")
         log_scroll = ttk.Scrollbar(log_box, orient="vertical", command=self.log_text.yview)
         self.log_text.configure(yscrollcommand=log_scroll.set)
+        self.log_text.configure(background="#f5f9fc", foreground="#24384b", relief="flat", borderwidth=0, highlightthickness=0)
         self.log_text.pack(side=LEFT, fill=BOTH, expand=True)
         log_scroll.pack(side=RIGHT, fill=Y)
 

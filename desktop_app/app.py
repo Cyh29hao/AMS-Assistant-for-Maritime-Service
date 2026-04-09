@@ -6,6 +6,7 @@ import threading
 import traceback
 import webbrowser
 from pathlib import Path
+import tkinter.ttk as tkttk
 from tkinter import filedialog, messagebox
 from tkinter.scrolledtext import ScrolledText
 from typing import Any, Callable
@@ -55,10 +56,15 @@ class AmsDesktopApp:
         self.ops.ensure_workspace()
 
         self.window = ttk.Window(themename=self.config.theme_name)
+        screen_width = self.window.winfo_screenwidth()
+        screen_height = self.window.winfo_screenheight()
+        default_width = min(1380, max(1180, screen_width - 120))
+        default_height = min(980, max(860, screen_height - 120))
         self.window.title(f"{APP_NAME} Desktop")
-        self.window.geometry("1360x920")
+        self.window.geometry(f"{default_width}x{default_height}")
         self.window.minsize(1180, 820)
         self.window.protocol("WM_DELETE_WINDOW", self.on_close)
+        self.window.option_add("*tearOff", False)
 
         self.status_text = ttk.StringVar(value="准备就绪")
         self.contract_input_var = ttk.StringVar()
@@ -82,6 +88,7 @@ class AmsDesktopApp:
         self.log_widget: ScrolledText | None = None
         self.sync_panel: ExcelSyncPanel | None = None
 
+        self.apply_visual_styles()
         self.build_ui()
         self.refresh_paths()
         self.refresh_clearance_session_hint()
@@ -90,27 +97,35 @@ class AmsDesktopApp:
         if self.config.check_updates_on_launch:
             self.start_task("检查更新", self.ops.check_for_updates, self.on_check_updates_done)
 
+    def apply_visual_styles(self) -> None:
+        style = tkttk.Style(self.window)
+        style.configure("TNotebook.Tab", padding=(18, 10), font=("Microsoft YaHei UI", 10, "bold"))
+        style.configure("TButton", padding=(12, 8), font=("Microsoft YaHei UI", 10))
+
     def build_ui(self) -> None:
-        outer = ttk.Frame(self.window, padding=18)
+        outer = ttk.Frame(self.window, padding=(16, 14, 16, 14))
         outer.pack(fill=BOTH, expand=True)
 
         self.build_header(outer)
 
-        self.notebook = ttk.Notebook(outer, bootstyle="primary")
-        self.notebook.pack(fill=BOTH, expand=True, pady=(12, 10))
+        notebook_shell = self.make_surface(outer, padding=8, bootstyle="light")
+        notebook_shell.pack(fill=BOTH, expand=True, pady=(12, 10))
 
-        self.home_tab = ttk.Frame(self.notebook, padding=16)
-        self.contract_tab = ttk.Frame(self.notebook, padding=16)
-        self.clearance_tab = ttk.Frame(self.notebook, padding=16)
-        self.lineup_tab = ttk.Frame(self.notebook, padding=16)
-        self.sync_tab = ttk.Frame(self.notebook, padding=16)
-        self.settings_tab = ttk.Frame(self.notebook, padding=16)
+        self.notebook = ttk.Notebook(notebook_shell, bootstyle="primary")
+        self.notebook.pack(fill=BOTH, expand=True)
+
+        self.home_tab = ttk.Frame(self.notebook, padding=18)
+        self.contract_tab = ttk.Frame(self.notebook, padding=18)
+        self.clearance_tab = ttk.Frame(self.notebook, padding=18)
+        self.lineup_tab = ttk.Frame(self.notebook, padding=18)
+        self.sync_tab = ttk.Frame(self.notebook, padding=18)
+        self.settings_tab = ttk.Frame(self.notebook, padding=18)
 
         self.notebook.add(self.home_tab, text="首页")
-        self.notebook.add(self.contract_tab, text=CONTRACT_FEATURE_NAME)
-        self.notebook.add(self.clearance_tab, text=CLEARANCE_FEATURE_NAME)
-        self.notebook.add(self.lineup_tab, text=LINEUP_FEATURE_NAME)
-        self.notebook.add(self.sync_tab, text=SYNC_FEATURE_NAME)
+        self.notebook.add(self.contract_tab, text="合同生成")
+        self.notebook.add(self.clearance_tab, text="通关查询")
+        self.notebook.add(self.lineup_tab, text="船期矩阵")
+        self.notebook.add(self.sync_tab, text="表格同步")
         self.notebook.add(self.settings_tab, text="设置")
 
         self.build_home_tab()
@@ -120,223 +135,347 @@ class AmsDesktopApp:
         self.build_sync_tab()
         self.build_settings_tab()
 
-        log_frame = ttk.Labelframe(outer, text="运行日志", padding=10, bootstyle="secondary")
-        log_frame.pack(fill=BOTH, expand=False)
-        self.log_widget = ScrolledText(log_frame, height=9, font=("Microsoft YaHei UI", 10))
+        log_shell = self.make_surface(outer, padding=0, bootstyle="light")
+        log_shell.pack(fill=BOTH, expand=False)
+        log_header = ttk.Frame(log_shell, padding=(16, 14, 16, 0))
+        log_header.pack(fill=X)
+        ttk.Label(log_header, text="运行日志", font=("Microsoft YaHei UI", 15, "bold")).pack(side=LEFT)
+        ttk.Label(log_header, text="把执行过程留在下面，既方便验收，也方便排错。", bootstyle="secondary").pack(side=LEFT, padx=(10, 0))
+        ttk.Button(log_header, text="清空日志", bootstyle="secondary", command=self.clear_log).pack(side=RIGHT)
+        log_body = ttk.Frame(log_shell, padding=(16, 10, 16, 16))
+        log_body.pack(fill=BOTH, expand=True)
+        self.log_widget = ScrolledText(
+            log_body,
+            height=8,
+            font=("Microsoft YaHei UI", 10),
+            background="#f5f9fc",
+            foreground="#24384b",
+            insertbackground="#24384b",
+            relief="flat",
+            borderwidth=0,
+            highlightthickness=0,
+        )
         self.log_widget.pack(fill=BOTH, expand=True)
         self.log("应用已启动。")
 
-        status_bar = ttk.Label(
-            outer,
-            textvariable=self.status_text,
-            anchor="w",
-            padding=(8, 6),
-            bootstyle="secondary",
-        )
-        status_bar.pack(fill=X, pady=(8, 0))
+        status_shell = self.make_surface(outer, padding=(12, 8), bootstyle="light")
+        status_shell.pack(fill=X)
+        ttk.Label(status_shell, textvariable=self.status_text, anchor="w", bootstyle="secondary").pack(fill=X)
 
     def build_header(self, parent: ttk.Frame) -> None:
         header = ttk.Frame(parent)
         header.pack(fill=X)
+        header.columnconfigure(0, weight=1)
+        header.columnconfigure(1, weight=0)
 
-        left = ttk.Frame(header)
-        left.pack(side=LEFT, fill=X, expand=True)
+        left = self.make_surface(header, padding=18, bootstyle="light")
+        left.grid(row=0, column=0, sticky="nsew", padx=(0, 12))
+        self.make_pill(left, "LOCAL-FIRST MARITIME WORKSPACE", "primary").pack(anchor="w")
+        ttk.Label(left, text="AMS Assistant Desktop", font=("Microsoft YaHei UI", 25, "bold"), bootstyle="primary").pack(anchor="w", pady=(8, 2))
         ttk.Label(
             left,
-            text="AMS Assistant Desktop",
-            font=("Microsoft YaHei UI", 24, "bold"),
-            bootstyle="primary",
-        ).pack(anchor="w")
-        ttk.Label(
-            left,
-            text="把合同生成、通关查询、船期预留和 Excel 自动同步，收进同一个更容易上手的本地桌面工作台。",
+            text="把合同生成、通关查询、船期预留和 Excel 自动同步，整理进一个更好上手、也更愿意打开的本地工作台。",
             font=("Microsoft YaHei UI", 11),
             bootstyle="secondary",
-        ).pack(anchor="w", pady=(4, 0))
+            wraplength=760,
+            justify="left",
+        ).pack(anchor="w")
+        tags = ttk.Frame(left)
+        tags.pack(fill=X, pady=(12, 0))
+        self.make_pill(tags, "合同", "success").pack(side=LEFT, padx=(0, 8))
+        self.make_pill(tags, "通关", "info").pack(side=LEFT, padx=(0, 8))
+        self.make_pill(tags, "表格同步", "primary").pack(side=LEFT, padx=(0, 8))
+        self.make_pill(tags, "可更新", "warning").pack(side=LEFT)
 
-        right = ttk.Frame(header)
-        right.pack(side=RIGHT)
-        ttk.Button(right, text="打开工作区", bootstyle="secondary", command=self.open_workspace_root).pack(side=LEFT, padx=4)
-        ttk.Button(right, text="帮助中心", bootstyle="info", command=self.open_help_center).pack(side=LEFT, padx=4)
-        ttk.Button(right, text="反馈建议", bootstyle="success", command=self.open_feedback_mail).pack(side=LEFT, padx=4)
-        ttk.Button(right, text="检查更新", bootstyle="warning", command=self.check_updates_clicked).pack(side=LEFT, padx=4)
-        ttk.Button(right, text="GitHub", bootstyle="link", command=lambda: webbrowser.open(APP_REPO_URL)).pack(side=LEFT, padx=4)
+        right = self.make_surface(header, padding=14, bootstyle="light")
+        right.grid(row=0, column=1, sticky="nsew")
+        ttk.Label(right, text=f"版本 {APP_VERSION}", font=("Microsoft YaHei UI", 10, "bold"), bootstyle="primary").pack(anchor="e")
+        ttk.Label(
+            right,
+            text="不想翻文件夹，就从这里把事做完。",
+            bootstyle="secondary",
+            wraplength=260,
+            justify="right",
+        ).pack(anchor="e", pady=(4, 8))
+        actions1 = ttk.Frame(right)
+        actions1.pack(anchor="e")
+        ttk.Button(actions1, text="打开工作区", bootstyle="secondary", command=self.open_workspace_root).pack(side=LEFT, padx=4)
+        ttk.Button(actions1, text="帮助中心", bootstyle="info", command=self.open_help_center).pack(side=LEFT, padx=4)
+        ttk.Button(actions1, text="反馈建议", bootstyle="success", command=self.open_feedback_mail).pack(side=LEFT, padx=4)
+        actions2 = ttk.Frame(right)
+        actions2.pack(anchor="e", pady=(8, 0))
+        ttk.Button(actions2, text="检查更新", bootstyle="warning", command=self.check_updates_clicked).pack(side=LEFT, padx=4)
+        ttk.Button(actions2, text="GitHub", bootstyle="secondary", command=lambda: webbrowser.open(APP_REPO_URL)).pack(side=LEFT, padx=4)
 
     def build_home_tab(self) -> None:
-        hero = self.make_card(
-            self.home_tab,
-            "欢迎使用 AMS Assistant",
-            "如果你只是想做事，不想研究代码和文件结构，那就从这里开始。",
-            bootstyle="primary",
-        )
-        hero.pack(fill=X, pady=(0, 12))
+        self.home_tab.columnconfigure(0, weight=7)
+        self.home_tab.columnconfigure(1, weight=4)
+
+        hero = self.make_surface(self.home_tab, padding=22, bootstyle="primary")
+        hero.grid(row=0, column=0, sticky="nsew", padx=(0, 10), pady=(0, 12))
+        self.make_pill(hero, "欢迎使用", "light").pack(anchor="w")
+        ttk.Label(hero, text="如果你只是想做事，就从这里开始。", font=("Microsoft YaHei UI", 15, "bold"), bootstyle="inverse-primary").pack(anchor="w", pady=(10, 6))
         ttk.Label(
             hero,
-            text="建议使用顺序：先打开对应功能的输入文件，填好并保存，再回到应用里点击执行。结果、日志和帮助页面都尽量固定在一个地方。",
+            text="最顺手的方式通常是：先打开固定输入文件，填好并保存，再回到应用里执行。结果、帮助页和最新输出，都尽量保持在固定入口。",
             bootstyle="inverse-primary",
-            wraplength=1050,
-        ).pack(anchor="w", pady=(6, 0))
+            wraplength=700,
+            justify="left",
+        ).pack(anchor="w")
+        self.make_step_row(
+            hero,
+            [
+                ("1", "打开输入文件", "先把 Excel 或工作簿准备好。"),
+                ("2", "回到应用执行", "点主按钮，不用记命令。"),
+                ("3", "直接看最新结果", "输出会保留固定入口。"),
+            ],
+            bootstyle="light",
+        ).pack(fill=X, pady=(14, 0))
         hero_buttons = ttk.Frame(hero)
-        hero_buttons.pack(fill=X, pady=(10, 0))
+        hero_buttons.pack(fill=X, pady=(14, 0))
         ttk.Button(hero_buttons, text=CONTRACT_FEATURE_NAME, bootstyle="light", command=lambda: self.select_tab(self.contract_tab)).pack(side=LEFT, padx=4)
         ttk.Button(hero_buttons, text=CLEARANCE_FEATURE_NAME, bootstyle="light", command=lambda: self.select_tab(self.clearance_tab)).pack(side=LEFT, padx=4)
         ttk.Button(hero_buttons, text=SYNC_FEATURE_NAME, bootstyle="light", command=lambda: self.select_tab(self.sync_tab)).pack(side=LEFT, padx=4)
         ttk.Button(hero_buttons, text="打开帮助中心", bootstyle="info", command=self.open_help_center).pack(side=LEFT, padx=4)
 
-        quick_row = ttk.Frame(self.home_tab)
-        quick_row.pack(fill=X, pady=(0, 12))
-        quick_row.columnconfigure((0, 1, 2, 3), weight=1)
-        self.make_feature_card(
-            quick_row,
-            0,
-            CONTRACT_FEATURE_NAME,
-            "填固定 Excel，一键生成 Word 合同。",
-            "打开输入文件",
-            lambda: self.open_path(self.ops.contract_input_path),
-            "功能说明",
-            lambda: self.open_help_page("contract"),
-            "success",
-        )
-        self.make_feature_card(
-            quick_row,
-            1,
-            CLEARANCE_FEATURE_NAME,
-            "保存登录态后，查询网站并回填工作簿。",
-            "打开输入文件",
-            lambda: self.open_path(self.ops.clearance_input_path),
-            "功能说明",
-            lambda: self.open_help_page("clearance"),
-            "info",
-        )
-        self.make_feature_card(
-            quick_row,
-            2,
-            LINEUP_FEATURE_NAME,
-            "后续接入船期表和港区矩阵生成。",
-            "查看预留目录",
-            lambda: self.open_path(self.ops.lineup_dir),
-            "功能说明",
-            lambda: self.open_help_page("lineup"),
-            "warning",
-        )
-        self.make_feature_card(
-            quick_row,
-            3,
-            SYNC_FEATURE_NAME,
-            "复制源表到目标表，只排除少数不保留列。",
-            "打开示例文件",
-            lambda: self.open_path(self.ops.sync_examples_dir),
-            "功能说明",
-            lambda: self.open_help_page("sync"),
-            "primary",
-        )
+        summary = self.make_surface(self.home_tab, padding=20, bootstyle="light")
+        summary.grid(row=0, column=1, sticky="nsew", pady=(0, 12))
+        ttk.Label(summary, text="当前环境", font=("Microsoft YaHei UI", 15, "bold")).pack(anchor="w")
+        ttk.Label(summary, textvariable=self.last_update_var, bootstyle="primary", font=("Microsoft YaHei UI", 11, "bold")).pack(anchor="w", pady=(10, 0))
+        self.make_path_block(summary, "当前工作区", textvariable=self.workspace_var, bootstyle="secondary", wraplength=360).pack(fill=X, pady=(12, 0))
+        self.make_path_block(summary, "设置文件", textvariable=self.settings_path_var, bootstyle="secondary", wraplength=360).pack(fill=X, pady=(10, 0))
+        self.make_path_block(summary, "网站登录态", textvariable=self.clearance_session_hint_var, bootstyle="secondary", wraplength=360).pack(fill=X, pady=(10, 0))
 
-        status_card = self.make_card(self.home_tab, "当前环境", "", bootstyle="secondary")
-        status_card.pack(fill=X)
-        ttk.Label(status_card, textvariable=self.last_update_var, bootstyle="secondary").pack(anchor="w", pady=(4, 0))
-        ttk.Label(status_card, text=f"当前工作区：{self.ops.workspace_root}", bootstyle="secondary").pack(anchor="w", pady=(6, 0))
-        ttk.Label(status_card, text=f"设置文件：{self.config_store.config_path}", bootstyle="secondary").pack(anchor="w", pady=(2, 0))
-        ttk.Label(status_card, textvariable=self.clearance_session_hint_var, bootstyle="secondary").pack(anchor="w", pady=(2, 0))
-        ttk.Label(
-            status_card,
-            text="如果你有改进建议，可以随时点右上角“反馈建议”，会直接打开给 cyh29hao@sjtu.edu.cn 的邮件。",
-            bootstyle="secondary",
-            wraplength=1020,
-        ).pack(anchor="w", pady=(8, 0))
+        feature_grid = ttk.Frame(self.home_tab)
+        feature_grid.grid(row=1, column=0, columnspan=2, sticky="nsew", pady=(0, 12))
+        feature_grid.columnconfigure(0, weight=1)
+        feature_grid.columnconfigure(1, weight=1)
 
-    def build_contract_tab(self) -> None:
-        top = self.make_card(
-            self.contract_tab,
-            CONTRACT_FEATURE_NAME,
-            "普通用户建议这样做：打开固定 Excel，填数据，保存并关闭，然后点击“一键生成合同”。",
+        self.make_feature_tile(
+            feature_grid,
+            row=0,
+            column=0,
+            title=CONTRACT_FEATURE_NAME,
+            status_text="已可用",
+            description="填固定 Excel，一键生成 Word 合同。适合不想折腾路径和模板逻辑的人。",
+            primary_label="打开输入文件",
+            primary_command=lambda: self.open_path(self.ops.contract_input_path),
+            secondary_label="功能说明",
+            secondary_command=lambda: self.open_help_page("contract"),
             bootstyle="success",
         )
-        top.pack(fill=X, pady=(0, 12))
-        ttk.Label(top, text="当前输入文件", font=("Microsoft YaHei UI", 10, "bold")).pack(anchor="w", pady=(8, 0))
-        ttk.Label(top, textvariable=self.contract_input_var, bootstyle="inverse-success").pack(anchor="w")
-        ttk.Label(top, text="当前结果目录", font=("Microsoft YaHei UI", 10, "bold")).pack(anchor="w", pady=(8, 0))
-        ttk.Label(top, textvariable=self.contract_result_var, bootstyle="inverse-success").pack(anchor="w")
+        self.make_feature_tile(
+            feature_grid,
+            row=0,
+            column=1,
+            title=CLEARANCE_FEATURE_NAME,
+            status_text="已可用",
+            description="保存登录态后，就能做单票测试和整表自动回填。",
+            primary_label="打开输入文件",
+            primary_command=lambda: self.open_path(self.ops.clearance_input_path),
+            secondary_label="功能说明",
+            secondary_command=lambda: self.open_help_page("clearance"),
+            bootstyle="info",
+        )
+        self.make_feature_tile(
+            feature_grid,
+            row=1,
+            column=0,
+            title=SYNC_FEATURE_NAME,
+            status_text="已可用",
+            description="尽量按源表原样复制，只排除你勾掉的列，适合日报同步和系统间搬运。",
+            primary_label="打开示例文件",
+            primary_command=lambda: self.open_path(self.ops.sync_examples_dir),
+            secondary_label="功能说明",
+            secondary_command=lambda: self.open_help_page("sync"),
+            bootstyle="primary",
+        )
+        self.make_feature_tile(
+            feature_grid,
+            row=1,
+            column=1,
+            title=LINEUP_FEATURE_NAME,
+            status_text="预留入口",
+            description="船期表和港区矩阵的入口已留好，后续会继续接入实际查询和报告。",
+            primary_label="查看预留目录",
+            primary_command=lambda: self.open_path(self.ops.lineup_dir),
+            secondary_label="功能说明",
+            secondary_command=lambda: self.open_help_page("lineup"),
+            bootstyle="warning",
+        )
 
-        row1 = ttk.Frame(top)
-        row1.pack(fill=X, pady=(10, 0))
+        latest = self.make_surface(self.home_tab, padding=18, bootstyle="light")
+        latest.grid(row=2, column=0, columnspan=2, sticky="ew")
+        ttk.Label(latest, text="最近结果快捷入口", font=("Microsoft YaHei UI", 15, "bold")).pack(anchor="w")
+        ttk.Label(latest, text="如果你只是想确认最新产物，下面这些按钮比翻目录更快。", bootstyle="secondary", wraplength=980).pack(anchor="w", pady=(6, 0))
+        latest_buttons = ttk.Frame(latest)
+        latest_buttons.pack(fill=X, pady=(12, 0))
+        ttk.Button(latest_buttons, text="打开最新合同", bootstyle="success", command=self.open_latest_contract_document).pack(side=LEFT, padx=4)
+        ttk.Button(latest_buttons, text="打开最新通关工作簿", bootstyle="info", command=self.open_latest_clearance_workbook).pack(side=LEFT, padx=4)
+        ttk.Button(latest_buttons, text="打开最新网站报告", bootstyle="secondary", command=self.open_latest_clearance_site_report).pack(side=LEFT, padx=4)
+        ttk.Button(latest_buttons, text="反馈建议", bootstyle="warning", command=self.open_feedback_mail).pack(side=RIGHT, padx=4)
+
+    def build_contract_tab(self) -> None:
+        self.contract_tab.columnconfigure(0, weight=7)
+        self.contract_tab.columnconfigure(1, weight=4)
+
+        left = self.make_surface(self.contract_tab, padding=22, bootstyle="success")
+        left.grid(row=0, column=0, sticky="nsew", padx=(0, 10))
+        self.make_pill(left, CONTRACT_FEATURE_NAME, "light").pack(anchor="w")
+        ttk.Label(left, text="填固定 Excel，回到这里，一键出合同。", font=("Microsoft YaHei UI", 15, "bold"), bootstyle="inverse-success").pack(anchor="w", pady=(10, 6))
+        ttk.Label(
+            left,
+            text="推荐普通用户就走固定模板这条线。这样路径、输出位置和验收口径都会更稳定。",
+            bootstyle="inverse-success",
+            wraplength=720,
+            justify="left",
+        ).pack(anchor="w")
+        self.make_step_row(
+            left,
+            [
+                ("1", "打开 Excel", "在固定输入文件里填数据。"),
+                ("2", "保存并关闭", "避免被 Excel 占用。"),
+                ("3", "点一键生成", "结果和摘要会一起生成。"),
+            ],
+            bootstyle="light",
+        ).pack(fill=X, pady=(14, 0))
+        self.make_path_block(left, "当前输入文件", textvariable=self.contract_input_var, bootstyle="inverse-success", wraplength=720).pack(fill=X, pady=(14, 0))
+        self.make_path_block(left, "当前结果目录", textvariable=self.contract_result_var, bootstyle="inverse-success", wraplength=720).pack(fill=X, pady=(10, 0))
+
+        row1 = ttk.Frame(left)
+        row1.pack(fill=X, pady=(14, 0))
         ttk.Button(row1, text="打开输入 Excel", bootstyle="light", command=lambda: self.open_path(self.ops.contract_input_path)).pack(side=LEFT, padx=4)
         ttk.Button(row1, text="重新生成空白模板", bootstyle="warning", command=self.contract_reset_template_clicked).pack(side=LEFT, padx=4)
         ttk.Button(row1, text="一键生成合同", bootstyle="success", command=self.contract_generate_clicked).pack(side=LEFT, padx=4)
-        ttk.Button(row1, text="打开结果目录", bootstyle="secondary", command=lambda: self.open_path(self.ops.contract_result_dir)).pack(side=LEFT, padx=4)
-        ttk.Button(row1, text="打开最新合同", bootstyle="info", command=self.open_latest_contract_document).pack(side=LEFT, padx=4)
 
-        row2 = ttk.Frame(top)
+        row2 = ttk.Frame(left)
         row2.pack(fill=X, pady=(8, 0))
+        ttk.Button(row2, text="打开结果目录", bootstyle="secondary", command=lambda: self.open_path(self.ops.contract_result_dir)).pack(side=LEFT, padx=4)
+        ttk.Button(row2, text="打开最新合同", bootstyle="info", command=self.open_latest_contract_document).pack(side=LEFT, padx=4)
         ttk.Button(row2, text="选择别的 Excel 并生成", bootstyle="secondary", command=self.contract_pick_other_excel_clicked).pack(side=LEFT, padx=4)
-        ttk.Button(row2, text="打开功能说明", bootstyle="info", command=lambda: self.open_help_page("contract")).pack(side=LEFT, padx=4)
+
+        right = ttk.Frame(self.contract_tab)
+        right.grid(row=0, column=1, sticky="nsew")
+        right.columnconfigure(0, weight=1)
+
+        tips = self.make_surface(right, padding=18, bootstyle="light")
+        tips.grid(row=0, column=0, sticky="ew", pady=(0, 10))
+        ttk.Label(tips, text="使用建议", font=("Microsoft YaHei UI", 15, "bold")).pack(anchor="w")
+        ttk.Label(tips, text="这块最适合“固定格式、重复生成”的工作。", bootstyle="secondary", wraplength=360).pack(anchor="w", pady=(6, 0))
+        self.make_pill(tips, "尽量先用固定输入文件", "success").pack(anchor="w", pady=(12, 0))
+        ttk.Label(tips, text="如果 Word 没生成出来，先检查 Excel / Word / WPS 是否还开着。", bootstyle="secondary", wraplength=360).pack(anchor="w", pady=(10, 0))
+        ttk.Button(tips, text="打开功能说明", bootstyle="info", command=lambda: self.open_help_page("contract")).pack(anchor="w", pady=(14, 0))
+
+        latest = self.make_surface(right, padding=18, bootstyle="light")
+        latest.grid(row=1, column=0, sticky="ew")
+        ttk.Label(latest, text="结果入口", font=("Microsoft YaHei UI", 15, "bold")).pack(anchor="w")
+        ttk.Label(latest, text="最新合同会维护一个固定文件名，方便你快速确认。", bootstyle="secondary", wraplength=360).pack(anchor="w", pady=(6, 0))
+        ttk.Button(latest, text="打开最新合同", bootstyle="success", command=self.open_latest_contract_document).pack(anchor="w", pady=(14, 0))
+        ttk.Button(latest, text="打开结果目录", bootstyle="secondary", command=lambda: self.open_path(self.ops.contract_result_dir)).pack(anchor="w", pady=(8, 0))
 
     def build_clearance_tab(self) -> None:
-        top = self.make_card(
-            self.clearance_tab,
-            CLEARANCE_FEATURE_NAME,
-            "这里把“保存登录态、检查登录、单票测试、整表回填”都收进一个界面里。",
-            bootstyle="info",
-        )
-        top.pack(fill=X, pady=(0, 12))
-        ttk.Label(top, text="当前输入文件", font=("Microsoft YaHei UI", 10, "bold")).pack(anchor="w", pady=(8, 0))
-        ttk.Label(top, textvariable=self.clearance_input_var, bootstyle="inverse-info").pack(anchor="w")
-        ttk.Label(top, text="当前结果目录", font=("Microsoft YaHei UI", 10, "bold")).pack(anchor="w", pady=(8, 0))
-        ttk.Label(top, textvariable=self.clearance_result_var, bootstyle="inverse-info").pack(anchor="w")
-        ttk.Label(top, textvariable=self.clearance_session_hint_var, bootstyle="inverse-info").pack(anchor="w", pady=(8, 0))
+        self.clearance_tab.columnconfigure(0, weight=1)
+        self.clearance_tab.columnconfigure(1, weight=1)
 
-        row1 = ttk.Frame(top)
-        row1.pack(fill=X, pady=(10, 0))
-        ttk.Button(row1, text="打开输入 Excel", bootstyle="light", command=lambda: self.open_path(self.ops.clearance_input_path)).pack(side=LEFT, padx=4)
-        ttk.Button(row1, text="重新生成空白模板", bootstyle="warning", command=self.clearance_reset_template_clicked).pack(side=LEFT, padx=4)
-        ttk.Button(row1, text="打开结果目录", bootstyle="secondary", command=lambda: self.open_path(self.ops.clearance_result_root)).pack(side=LEFT, padx=4)
-        ttk.Button(row1, text="打开功能说明", bootstyle="info", command=lambda: self.open_help_page("clearance")).pack(side=LEFT, padx=4)
+        intro = self.make_surface(self.clearance_tab, padding=20, bootstyle="info")
+        intro.grid(row=0, column=0, columnspan=2, sticky="ew", pady=(0, 12))
+        self.make_pill(intro, CLEARANCE_FEATURE_NAME, "light").pack(anchor="w")
+        ttk.Label(intro, text="把登录、测试和整表回填，收进同一个页面。", font=("Microsoft YaHei UI", 15, "bold"), bootstyle="inverse-info").pack(anchor="w", pady=(10, 6))
+        ttk.Label(
+            intro,
+            text="先保存一次网站登录态，之后就可以先查一票，再整表回填。这样最容易排查是登录问题还是数据问题。",
+            bootstyle="inverse-info",
+            wraplength=980,
+            justify="left",
+        ).pack(anchor="w")
+        self.make_path_block(intro, "当前输入文件", textvariable=self.clearance_input_var, bootstyle="inverse-info", wraplength=980).pack(fill=X, pady=(14, 0))
+        self.make_path_block(intro, "当前结果目录", textvariable=self.clearance_result_var, bootstyle="inverse-info", wraplength=980).pack(fill=X, pady=(10, 0))
 
-        session_card = self.make_card(self.clearance_tab, "网站登录", "先保存一次登录态，后面再检查登录、做查询和回填。", bootstyle="secondary")
-        session_card.pack(fill=X, pady=(0, 12))
+        session_card = self.make_surface(self.clearance_tab, padding=18, bootstyle="light")
+        session_card.grid(row=1, column=0, sticky="nsew", padx=(0, 10), pady=(0, 12))
+        ttk.Label(session_card, text="网站登录", font=("Microsoft YaHei UI", 15, "bold")).pack(anchor="w")
+        ttk.Label(session_card, text="首次使用时，先保存一次登录态。以后通常只要检查一下是否过期。", bootstyle="secondary", wraplength=460).pack(anchor="w", pady=(6, 0))
+        self.make_path_block(session_card, "当前登录态提示", textvariable=self.clearance_session_hint_var, bootstyle="secondary", wraplength=420).pack(fill=X, pady=(12, 0))
         session_row = ttk.Frame(session_card)
-        session_row.pack(fill=X, pady=(8, 0))
+        session_row.pack(fill=X, pady=(14, 0))
         ttk.Button(session_row, text="首次登录并保存登录态", bootstyle="primary", command=self.clearance_capture_session_clicked).pack(side=LEFT, padx=4)
         ttk.Button(session_row, text="检查登录态", bootstyle="info", command=self.clearance_check_session_clicked).pack(side=LEFT, padx=4)
         ttk.Button(session_row, text="打开登录态目录", bootstyle="secondary", command=lambda: self.open_path(self.ops.clearance_site_session_dir)).pack(side=LEFT, padx=4)
 
-        query_card = self.make_card(self.clearance_tab, "单票测试", "先查一票，确认登录和网站查询都正常。", bootstyle="secondary")
-        query_card.pack(fill=X, pady=(0, 12))
-        query_controls = ttk.Frame(query_card)
-        query_controls.pack(fill=X, pady=(8, 0))
-        ttk.Entry(query_controls, textvariable=self.clearance_query_var, width=42).pack(side=LEFT, padx=4)
-        ttk.Combobox(query_controls, textvariable=self.clearance_mode_var, values=["auto", "blNo", "entryNo", "ctnrNo"], width=12, state="readonly").pack(side=LEFT, padx=4)
-        ttk.Combobox(query_controls, textvariable=self.clearance_iemark_var, values=["", "E", "I"], width=8, state="readonly").pack(side=LEFT, padx=4)
-        ttk.Button(query_controls, text="查询这一票", bootstyle="success", command=self.clearance_query_one_clicked).pack(side=LEFT, padx=4)
-        ttk.Button(query_controls, text="打开查询结果目录", bootstyle="secondary", command=lambda: self.open_path(self.ops.clearance_site_query_dir)).pack(side=LEFT, padx=4)
+        query_card = self.make_surface(self.clearance_tab, padding=18, bootstyle="light")
+        query_card.grid(row=1, column=1, sticky="nsew", pady=(0, 12))
+        ttk.Label(query_card, text="单票测试", font=("Microsoft YaHei UI", 15, "bold")).pack(anchor="w")
+        ttk.Label(query_card, text="先查一票，确认网站查询是通的，再做整表更新会更安心。", bootstyle="secondary", wraplength=460).pack(anchor="w", pady=(6, 0))
+        ttk.Label(query_card, text="识别值", font=("Microsoft YaHei UI", 10, "bold")).pack(anchor="w", pady=(12, 0))
+        ttk.Entry(query_card, textvariable=self.clearance_query_var, width=42).pack(fill=X, pady=(6, 0))
+        filters = ttk.Frame(query_card)
+        filters.pack(fill=X, pady=(10, 0))
+        ttk.Label(filters, text="模式", font=("Microsoft YaHei UI", 10, "bold")).pack(side=LEFT)
+        ttk.Combobox(filters, textvariable=self.clearance_mode_var, values=["auto", "blNo", "entryNo", "ctnrNo"], width=12, state="readonly").pack(side=LEFT, padx=(8, 16))
+        ttk.Label(filters, text="I/E", font=("Microsoft YaHei UI", 10, "bold")).pack(side=LEFT)
+        ttk.Combobox(filters, textvariable=self.clearance_iemark_var, values=["", "E", "I"], width=8, state="readonly").pack(side=LEFT, padx=(8, 0))
+        query_actions = ttk.Frame(query_card)
+        query_actions.pack(fill=X, pady=(14, 0))
+        ttk.Button(query_actions, text="查询这一票", bootstyle="success", command=self.clearance_query_one_clicked).pack(side=LEFT, padx=4)
+        ttk.Button(query_actions, text="打开查询结果目录", bootstyle="secondary", command=lambda: self.open_path(self.ops.clearance_site_query_dir)).pack(side=LEFT, padx=4)
 
-        update_card = self.make_card(self.clearance_tab, "整表自动回填", "填好输入 Excel 后，自动查询网站并更新工作簿。", bootstyle="secondary")
-        update_card.pack(fill=X)
-        update_row = ttk.Frame(update_card)
-        update_row.pack(fill=X, pady=(8, 0))
-        ttk.Button(update_row, text="用当前输入表自动回填", bootstyle="success", command=self.clearance_update_clicked).pack(side=LEFT, padx=4)
-        ttk.Button(update_row, text="选择别的 Excel", bootstyle="secondary", command=self.clearance_pick_other_excel_clicked).pack(side=LEFT, padx=4)
-        ttk.Button(update_row, text="打开最新工作簿", bootstyle="info", command=self.open_latest_clearance_workbook).pack(side=LEFT, padx=4)
-        ttk.Button(update_row, text="打开最新网站报告", bootstyle="info", command=self.open_latest_clearance_site_report).pack(side=LEFT, padx=4)
-
-    def build_lineup_tab(self) -> None:
-        card = self.make_card(
-            self.lineup_tab,
-            LINEUP_FEATURE_NAME,
-            "这个入口已经准备好，后续会接入船期表查询、港区矩阵生成和相关报告。",
-            bootstyle="warning",
-        )
-        card.pack(fill=X)
-        ttk.Label(card, text=f"当前预留目录：{self.ops.lineup_dir}", bootstyle="inverse-warning").pack(anchor="w", pady=(8, 0))
-        row = ttk.Frame(card)
-        row.pack(fill=X, pady=(10, 0))
-        ttk.Button(row, text="打开预留目录", bootstyle="secondary", command=lambda: self.open_path(self.ops.lineup_dir)).pack(side=LEFT, padx=4)
-        ttk.Button(row, text="打开功能说明", bootstyle="info", command=lambda: self.open_help_page("lineup")).pack(side=LEFT, padx=4)
+        update_card = self.make_surface(self.clearance_tab, padding=20, bootstyle="light")
+        update_card.grid(row=2, column=0, columnspan=2, sticky="ew")
+        ttk.Label(update_card, text="整表自动回填", font=("Microsoft YaHei UI", 15, "bold")).pack(anchor="w")
         ttk.Label(
-            card,
-            text="你以后验收这一块时，尽量也会从桌面应用里走，而不是回到脚本层单独折腾。",
+            update_card,
+            text="等单票测试正常后，再让它读取当前工作簿、自动查询网站并回填结果。你也可以临时选别的 Excel 做一次性更新。",
             bootstyle="secondary",
             wraplength=980,
-        ).pack(anchor="w", pady=(14, 0))
+            justify="left",
+        ).pack(anchor="w", pady=(6, 0))
+        update_row = ttk.Frame(update_card)
+        update_row.pack(fill=X, pady=(14, 0))
+        ttk.Button(update_row, text="打开输入 Excel", bootstyle="light", command=lambda: self.open_path(self.ops.clearance_input_path)).pack(side=LEFT, padx=4)
+        ttk.Button(update_row, text="重新生成空白模板", bootstyle="warning", command=self.clearance_reset_template_clicked).pack(side=LEFT, padx=4)
+        ttk.Button(update_row, text="用当前输入表自动回填", bootstyle="success", command=self.clearance_update_clicked).pack(side=LEFT, padx=4)
+        ttk.Button(update_row, text="选择别的 Excel", bootstyle="secondary", command=self.clearance_pick_other_excel_clicked).pack(side=LEFT, padx=4)
+
+        result_row = ttk.Frame(update_card)
+        result_row.pack(fill=X, pady=(10, 0))
+        ttk.Button(result_row, text="打开最新工作簿", bootstyle="info", command=self.open_latest_clearance_workbook).pack(side=LEFT, padx=4)
+        ttk.Button(result_row, text="打开最新网站报告", bootstyle="secondary", command=self.open_latest_clearance_site_report).pack(side=LEFT, padx=4)
+        ttk.Button(result_row, text="打开功能说明", bootstyle="info", command=lambda: self.open_help_page("clearance")).pack(side=RIGHT, padx=4)
+
+    def build_lineup_tab(self) -> None:
+        self.lineup_tab.columnconfigure(0, weight=3)
+        self.lineup_tab.columnconfigure(1, weight=2)
+
+        intro = self.make_surface(self.lineup_tab, padding=22, bootstyle="warning")
+        intro.grid(row=0, column=0, sticky="nsew", padx=(0, 10))
+        self.make_pill(intro, LINEUP_FEATURE_NAME, "light").pack(anchor="w")
+        ttk.Label(intro, text="这里会接入后续的船期表与港区矩阵工作流。", font=("Microsoft YaHei UI", 15, "bold"), bootstyle="inverse-warning").pack(anchor="w", pady=(10, 6))
+        ttk.Label(
+            intro,
+            text="现在先把入口、目录和说明整理好，等后续业务规则更明确时，尽量还是沿用同一套桌面应用体验去验收。",
+            bootstyle="inverse-warning",
+            wraplength=700,
+            justify="left",
+        ).pack(anchor="w")
+        self.make_path_block(intro, "当前预留目录", text=str(self.ops.lineup_dir), bootstyle="inverse-warning", wraplength=680).pack(fill=X, pady=(14, 0))
+        row = ttk.Frame(intro)
+        row.pack(fill=X, pady=(14, 0))
+        ttk.Button(row, text="打开预留目录", bootstyle="secondary", command=lambda: self.open_path(self.ops.lineup_dir)).pack(side=LEFT, padx=4)
+        ttk.Button(row, text="打开功能说明", bootstyle="info", command=lambda: self.open_help_page("lineup")).pack(side=LEFT, padx=4)
+
+        roadmap = self.make_surface(self.lineup_tab, padding=18, bootstyle="light")
+        roadmap.grid(row=0, column=1, sticky="nsew")
+        ttk.Label(roadmap, text="后续会往这里放什么", font=("Microsoft YaHei UI", 15, "bold")).pack(anchor="w")
+        self.make_step_row(
+            roadmap,
+            [
+                ("A", "船期数据读取", "从原始表或站点拿到航次信息。"),
+                ("B", "矩阵生成", "整理成港口 x 区域的可读结果。"),
+                ("C", "报告输出", "给验收和业务查看固定结果入口。"),
+            ],
+            bootstyle="warning",
+        ).pack(fill=X, pady=(12, 0))
+        ttk.Label(roadmap, text="你以后验收这一块时，也尽量从桌面应用里走，而不是回到脚本层单独折腾。", bootstyle="secondary", wraplength=360).pack(anchor="w", pady=(14, 0))
 
     def build_sync_tab(self) -> None:
         self.sync_panel = ExcelSyncPanel(
@@ -348,65 +487,98 @@ class AmsDesktopApp:
         )
 
     def build_settings_tab(self) -> None:
-        card = self.make_card(
-            self.settings_tab,
-            "设置",
-            "这里主要控制工作区、主题、通关查询浏览器偏好和自动更新设置。",
-            bootstyle="secondary",
-        )
-        card.pack(fill=X)
+        self.settings_tab.columnconfigure(0, weight=3)
+        self.settings_tab.columnconfigure(1, weight=2)
 
-        row1 = ttk.Frame(card)
-        row1.pack(fill=X, pady=(10, 0))
+        left = self.make_surface(self.settings_tab, padding=20, bootstyle="light")
+        left.grid(row=0, column=0, sticky="nsew", padx=(0, 10))
+        ttk.Label(left, text="工作区与界面", font=("Microsoft YaHei UI", 15, "bold")).pack(anchor="w")
+        ttk.Label(left, text="主要控制工作区位置、主题和浏览器偏好。", bootstyle="secondary").pack(anchor="w", pady=(6, 0))
+
+        row1 = ttk.Frame(left)
+        row1.pack(fill=X, pady=(14, 0))
         ttk.Label(row1, text="工作区根目录", width=14).pack(side=LEFT)
-        ttk.Entry(row1, textvariable=self.workspace_var, width=78).pack(side=LEFT, padx=6)
+        ttk.Entry(row1, textvariable=self.workspace_var, width=68).pack(side=LEFT, padx=6, fill=X, expand=True)
         ttk.Button(row1, text="选择文件夹", bootstyle="secondary", command=self.choose_workspace_clicked).pack(side=LEFT)
 
-        row2 = ttk.Frame(card)
-        row2.pack(fill=X, pady=(10, 0))
+        row2 = ttk.Frame(left)
+        row2.pack(fill=X, pady=(12, 0))
         ttk.Label(row2, text="界面主题", width=14).pack(side=LEFT)
         ttk.Combobox(row2, textvariable=self.theme_var, values=ThemeChoices, width=18, state="readonly").pack(side=LEFT, padx=6)
 
-        row3 = ttk.Frame(card)
-        row3.pack(fill=X, pady=(10, 0))
+        row3 = ttk.Frame(left)
+        row3.pack(fill=X, pady=(12, 0))
         ttk.Label(row3, text="通关查询浏览器", width=14).pack(side=LEFT)
         ttk.Combobox(row3, textvariable=self.req2_browser_var, values=BrowserChoices, width=18, state="readonly").pack(side=LEFT, padx=6)
         ttk.Label(row3, text="推荐保持 auto，会优先尝试 Edge。", bootstyle="secondary").pack(side=LEFT, padx=6)
 
-        row4 = ttk.Frame(card)
-        row4.pack(fill=X, pady=(10, 0))
+        row4 = ttk.Frame(left)
+        row4.pack(fill=X, pady=(14, 0))
         ttk.Checkbutton(row4, text="执行后自动打开结果目录", variable=self.auto_open_var, bootstyle="round-toggle").pack(side=LEFT, padx=4)
         ttk.Checkbutton(row4, text="启动时自动检查更新", variable=self.auto_update_check_var, bootstyle="round-toggle").pack(side=LEFT, padx=16)
 
-        row5 = ttk.Frame(card)
-        row5.pack(fill=X, pady=(12, 0))
-        ttk.Button(row5, text="保存设置", bootstyle="success", command=self.save_settings_clicked).pack(side=LEFT, padx=4)
-        ttk.Button(row5, text="打开工作区", bootstyle="secondary", command=self.open_workspace_root).pack(side=LEFT, padx=4)
-        ttk.Button(row5, text="打开用户数据目录", bootstyle="secondary", command=self.open_settings_root).pack(side=LEFT, padx=4)
-        ttk.Button(row5, text="帮助中心", bootstyle="info", command=self.open_help_center).pack(side=LEFT, padx=4)
-        ttk.Button(row5, text="反馈建议", bootstyle="success", command=self.open_feedback_mail).pack(side=LEFT, padx=4)
+        actions = ttk.Frame(left)
+        actions.pack(fill=X, pady=(16, 0))
+        ttk.Button(actions, text="保存设置", bootstyle="success", command=self.save_settings_clicked).pack(side=LEFT, padx=4)
+        ttk.Button(actions, text="打开工作区", bootstyle="secondary", command=self.open_workspace_root).pack(side=LEFT, padx=4)
+        ttk.Button(actions, text="打开用户数据目录", bootstyle="secondary", command=self.open_settings_root).pack(side=LEFT, padx=4)
 
-        row6 = ttk.Frame(card)
-        row6.pack(fill=X, pady=(12, 0))
-        ttk.Label(row6, text="设置文件", width=14).pack(side=LEFT)
-        ttk.Label(row6, textvariable=self.settings_path_var, bootstyle="secondary").pack(side=LEFT)
+        right = ttk.Frame(self.settings_tab)
+        right.grid(row=0, column=1, sticky="nsew")
+        right.columnconfigure(0, weight=1)
 
-        row7 = ttk.Frame(card)
-        row7.pack(fill=X, pady=(12, 0))
+        support = self.make_surface(right, padding=18, bootstyle="light")
+        support.grid(row=0, column=0, sticky="ew", pady=(0, 10))
+        ttk.Label(support, text="支持与更新", font=("Microsoft YaHei UI", 15, "bold")).pack(anchor="w")
         update_mode = "支持自动安装更新" if portable_install_root() is not None else "源码模式：自动更新不可用"
-        ttk.Label(row7, text=f"更新模式：{update_mode}", bootstyle="secondary").pack(side=LEFT)
+        ttk.Label(support, text=update_mode, bootstyle="primary", font=("Microsoft YaHei UI", 11, "bold")).pack(anchor="w", pady=(10, 0))
+        ttk.Label(
+            support,
+            text="release 版支持下载新版本、替换程序本体并保留工作区、设置和登录态。",
+            bootstyle="secondary",
+            wraplength=360,
+        ).pack(anchor="w", pady=(8, 0))
+        buttons = ttk.Frame(support)
+        buttons.pack(fill=X, pady=(14, 0))
+        ttk.Button(buttons, text="检查更新", bootstyle="warning", command=self.check_updates_clicked).pack(side=LEFT, padx=4)
+        ttk.Button(buttons, text="帮助中心", bootstyle="info", command=self.open_help_center).pack(side=LEFT, padx=4)
+        ttk.Button(buttons, text="反馈建议", bootstyle="success", command=self.open_feedback_mail).pack(side=LEFT, padx=4)
 
-    def make_card(self, parent: ttk.Frame, title: str, description: str, bootstyle: str = "light") -> ttk.Labelframe:
-        card = ttk.Labelframe(parent, text=title, padding=14, bootstyle=bootstyle)
-        if description:
-            ttk.Label(card, text=description, bootstyle=f"inverse-{bootstyle}" if bootstyle != "light" else "secondary", wraplength=1040).pack(anchor="w")
-        return card
+        meta = self.make_surface(right, padding=18, bootstyle="light")
+        meta.grid(row=1, column=0, sticky="ew")
+        ttk.Label(meta, text="当前配置", font=("Microsoft YaHei UI", 15, "bold")).pack(anchor="w")
+        self.make_path_block(meta, "设置文件", textvariable=self.settings_path_var, bootstyle="secondary", wraplength=360).pack(fill=X, pady=(12, 0))
+        self.make_path_block(meta, "当前工作区", textvariable=self.workspace_var, bootstyle="secondary", wraplength=360).pack(fill=X, pady=(10, 0))
 
-    def make_feature_card(
+    def make_surface(self, parent: ttk.Frame, padding: int | tuple[int, ...] = 18, bootstyle: str = "light") -> ttk.Frame:
+        return ttk.Frame(parent, padding=padding, bootstyle=bootstyle, borderwidth=1, relief="solid")
+
+    def make_pill(self, parent: ttk.Frame, text: str, bootstyle: str = "primary") -> ttk.Label:
+        return ttk.Label(parent, text=text, bootstyle=f"inverse-{bootstyle}", font=("Microsoft YaHei UI", 9, "bold"), padding=(10, 5))
+
+    def make_step_row(
         self,
         parent: ttk.Frame,
+        steps: list[tuple[str, str, str]],
+        bootstyle: str = "light",
+    ) -> ttk.Frame:
+        row = ttk.Frame(parent)
+        for column, (index, title, body) in enumerate(steps):
+            row.columnconfigure(column, weight=1)
+            card = self.make_surface(row, padding=14, bootstyle=bootstyle)
+            card.grid(row=0, column=column, sticky="nsew", padx=(0 if column == 0 else 8, 0))
+            self.make_pill(card, index, bootstyle if bootstyle != "light" else "primary").pack(anchor="w")
+            ttk.Label(card, text=title, font=("Microsoft YaHei UI", 12, "bold")).pack(anchor="w", pady=(10, 4))
+            ttk.Label(card, text=body, bootstyle="secondary", wraplength=210, justify="left").pack(anchor="w")
+        return row
+
+    def make_feature_tile(
+        self,
+        parent: ttk.Frame,
+        row: int,
         column: int,
         title: str,
+        status_text: str,
         description: str,
         primary_label: str,
         primary_command,
@@ -414,13 +586,44 @@ class AmsDesktopApp:
         secondary_command,
         bootstyle: str,
     ) -> None:
-        card = ttk.Labelframe(parent, text=title, padding=14, bootstyle=bootstyle)
-        card.grid(row=0, column=column, sticky="nsew", padx=6)
-        ttk.Label(card, text=description, bootstyle=f"inverse-{bootstyle}", wraplength=210).pack(anchor="w")
-        row = ttk.Frame(card)
-        row.pack(fill=X, pady=(12, 0))
-        ttk.Button(row, text=primary_label, bootstyle="light", command=primary_command).pack(side=LEFT, padx=2)
-        ttk.Button(row, text=secondary_label, bootstyle="secondary", command=secondary_command).pack(side=LEFT, padx=2)
+        card = self.make_surface(parent, padding=18, bootstyle="light")
+        card.grid(row=row, column=column, sticky="nsew", padx=(0 if column == 0 else 8, 0), pady=(0 if row == 0 else 8, 0))
+        self.make_pill(card, status_text, bootstyle).pack(anchor="w")
+        ttk.Label(card, text=title, font=("Microsoft YaHei UI", 12, "bold")).pack(anchor="w", pady=(12, 4))
+        ttk.Label(card, text=description, bootstyle="secondary", wraplength=420, justify="left").pack(anchor="w")
+        buttons = ttk.Frame(card)
+        buttons.pack(fill=X, pady=(14, 0))
+        ttk.Button(buttons, text=primary_label, bootstyle=bootstyle, command=primary_command).pack(side=LEFT, padx=(0, 6))
+        ttk.Button(buttons, text=secondary_label, bootstyle="secondary", command=secondary_command).pack(side=LEFT)
+
+    def make_path_block(
+        self,
+        parent: ttk.Frame,
+        title: str,
+        text: str | None = None,
+        textvariable=None,
+        bootstyle: str = "secondary",
+        wraplength: int = 720,
+    ) -> ttk.Frame:
+        block = self.make_surface(parent, padding=(12, 10), bootstyle="light")
+        ttk.Label(block, text=title, font=("Microsoft YaHei UI", 10, "bold")).pack(anchor="w")
+        kwargs: dict[str, Any] = {
+            "wraplength": wraplength,
+            "justify": "left",
+            "font": ("Microsoft YaHei UI", 10),
+            "bootstyle": bootstyle,
+        }
+        if textvariable is not None:
+            kwargs["textvariable"] = textvariable
+        else:
+            kwargs["text"] = text or ""
+        ttk.Label(block, **kwargs).pack(anchor="w", pady=(4, 0))
+        return block
+
+    def clear_log(self) -> None:
+        if self.log_widget is None:
+            return
+        self.log_widget.delete("1.0", END)
 
     def select_tab(self, tab_frame: ttk.Frame) -> None:
         self.notebook.select(tab_frame)
@@ -573,6 +776,7 @@ class AmsDesktopApp:
         self.ops = AmsOperations(self.config)
         self.ops.ensure_workspace()
         self.window.style.theme_use(self.config.theme_name)
+        self.apply_visual_styles()
         self.settings_path_var.set(str(self.config_store.config_path))
         self.refresh_paths()
         self.refresh_clearance_session_hint()
