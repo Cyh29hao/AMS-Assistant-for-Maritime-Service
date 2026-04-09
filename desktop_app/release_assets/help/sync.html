@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>表格自动同步 - AMS Assistant</title>
+  <link rel="stylesheet" href="./style.css">
+</head>
+<body>
+  <div class="wrap">
+    <section class="hero">
+      <div class="pill">表格自动同步</div>
+      <h1>监控源表，把指定字段自动写进目标表</h1>
+      <p>这个功能来自你之前的 Excel 同步工具，但现在被收进了 AMS Assistant 里。它适合做日报抽取、结果汇总、系统间搬运和“源表一改，目标表自动跟着改”的场景。</p>
+      <div class="nav">
+        <a href="./index.html">帮助首页</a>
+        <a href="./contract.html">合同生成中心</a>
+        <a href="./clearance.html">通关查询中心</a>
+        <span class="active">表格自动同步</span>
+      </div>
+    </section>
+
+    <section class="shot">
+      <div class="shot-title">界面示意：任务编辑器</div>
+      <img class="real-shot" src="./screens/sync.png" alt="表格自动同步截图">
+    </section>
+
+    <section class="shot">
+      <div class="shot-title">任务编辑结构示意</div>
+      <div class="mock-app">
+        <div class="mock-header">表格自动同步 - 任务编辑器</div>
+        <div class="mock-main">
+          <div class="mock-sidebar">
+            <div class="mock-chip active">新建任务</div>
+            <div class="mock-chip">暂停监控</div>
+            <div class="mock-chip">打开示例文件夹</div>
+            <div class="mock-chip">打开任务配置文件</div>
+          </div>
+          <div class="mock-content">
+            <div class="mock-card">
+              <strong>编辑要点</strong>
+              <p>选择源 Excel、源工作表、要同步的列，再设置目标 Excel 和目标工作表。</p>
+            </div>
+            <div class="mock-row">
+              <div class="mock-box highlight">源 Excel</div>
+              <div class="mock-box highlight">源工作表</div>
+              <div class="mock-box highlight">勾选字段</div>
+              <div class="mock-box good">目标 Excel</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel" style="margin-top:18px;">
+      <h2>最推荐的实际操作步骤</h2>
+      <div class="steps">
+        <div class="step">
+          <strong>第 1 步：先看示例</strong>
+          打开“示例文件夹”，看一眼源表和目标表长什么样，再开始配置自己的任务。
+        </div>
+        <div class="step">
+          <strong>第 2 步：新建任务</strong>
+          填任务名称，选择源 Excel，读取工作表，勾选要同步的列，再选择目标 Excel。
+        </div>
+        <div class="step">
+          <strong>第 3 步：保存并立即同步</strong>
+          第一次建议用“保存并立即同步”，先确认规则对不对，再交给后台监控。
+        </div>
+        <div class="step">
+          <strong>第 4 步：让它自动监控</strong>
+          保持监控开启。后面只要源表发生变化，程序就会自动尝试同步。
+        </div>
+      </div>
+    </section>
+
+    <section class="shot">
+      <div class="shot-title">界面示意：监控和状态</div>
+      <div class="mock-app">
+        <div class="mock-header">表格自动同步 - 状态列表</div>
+        <div class="mock-content">
+          <div class="mock-row">
+            <div class="mock-box good">已同步 - 目标表.xlsx</div>
+            <div class="mock-box">上次手动同步</div>
+            <div class="mock-box">上次自动完成</div>
+          </div>
+          <div class="mock-row">
+            <div class="mock-box warn">等待文件解锁</div>
+            <div class="mock-box">文件变化但同步区域未变</div>
+            <div class="mock-box highlight">同步中</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel" style="margin-top:18px;">
+      <h2>这个功能的核心价值</h2>
+      <ul>
+        <li>不是一次性导出，而是可以持续监控源文件。</li>
+        <li>能只同步你勾选的字段，不必整张表硬拷贝。</li>
+        <li>Excel / WPS 占用文件时会自动重试，而不是立刻放弃。</li>
+      </ul>
+    </section>
+
+    <div class="tip">
+      如果你后面想把这个同步功能扩成“多任务模板库”或者“固定项目的一键同步方案”，也可以直接在这块继续长，不需要再新做一个独立软件。
+    </div>
+  </div>
+</body>
+</html>

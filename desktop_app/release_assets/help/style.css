@@ -1,0 +1,165 @@
+:root {
+  --bg: #071624;
+  --panel: #0d2135;
+  --panel-soft: #122b42;
+  --line: rgba(255, 255, 255, 0.1);
+  --text: #f3f8fe;
+  --muted: #b8c9dc;
+  --teal: #4de2c6;
+  --blue: #62a8ff;
+  --gold: #ffc977;
+  --green: #7ae17b;
+  --danger: #ff8f7c;
+}
+
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  font-family: "Microsoft YaHei UI", "PingFang SC", sans-serif;
+  color: var(--text);
+  background:
+    radial-gradient(circle at top right, rgba(98, 168, 255, 0.16), transparent 30%),
+    radial-gradient(circle at left bottom, rgba(77, 226, 198, 0.16), transparent 26%),
+    linear-gradient(180deg, #071624 0%, #0b1f31 100%);
+}
+a { color: #9ad3ff; }
+.wrap { width: min(1180px, calc(100% - 36px)); margin: 0 auto; padding: 28px 0 48px; }
+.hero, .panel, .shot, .tip {
+  background: rgba(13, 33, 53, 0.92);
+  border: 1px solid var(--line);
+  border-radius: 24px;
+  box-shadow: 0 20px 50px rgba(3, 8, 20, 0.28);
+}
+.hero { padding: 28px; margin-bottom: 20px; }
+.hero h1 { margin: 0 0 10px; font-size: 38px; line-height: 1.15; }
+.hero p { margin: 0; color: var(--muted); line-height: 1.75; }
+.pill {
+  display: inline-block;
+  margin-bottom: 10px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: rgba(77, 226, 198, 0.12);
+  color: var(--teal);
+  font-size: 13px;
+  font-weight: 700;
+}
+.nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 16px;
+}
+.nav a, .nav span {
+  padding: 8px 14px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text);
+  text-decoration: none;
+}
+.nav .active {
+  background: rgba(98, 168, 255, 0.18);
+  color: #dcecff;
+}
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 18px;
+}
+.panel { padding: 22px; }
+.panel h2 { margin: 0 0 12px; font-size: 24px; }
+.panel h3 { margin: 16px 0 8px; font-size: 18px; }
+.panel p, .panel li { color: var(--muted); line-height: 1.8; }
+.panel ol, .panel ul { margin: 8px 0 0 22px; padding: 0; }
+.shot { padding: 20px; margin-top: 16px; overflow: hidden; }
+.real-shot {
+  width: 100%;
+  display: block;
+  border-radius: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+.shot-title {
+  color: var(--gold);
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  margin-bottom: 12px;
+}
+.mock-app {
+  border-radius: 22px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: linear-gradient(180deg, #102742 0%, #0c1d32 100%);
+  padding: 16px;
+}
+.mock-header {
+  height: 44px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.08);
+  display: flex;
+  align-items: center;
+  padding: 0 14px;
+  color: #d9e7f7;
+  font-size: 14px;
+  font-weight: 700;
+}
+.mock-main {
+  display: grid;
+  grid-template-columns: 170px 1fr;
+  gap: 16px;
+  margin-top: 14px;
+}
+.mock-sidebar {
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.05);
+  padding: 14px;
+}
+.mock-content {
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.05);
+  padding: 14px;
+}
+.mock-chip {
+  display: inline-block;
+  padding: 8px 12px;
+  border-radius: 14px;
+  background: rgba(98, 168, 255, 0.14);
+  margin: 0 8px 8px 0;
+  font-size: 13px;
+}
+.mock-chip.active { background: rgba(77, 226, 198, 0.18); color: #dffff7; }
+.mock-card {
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.05);
+  padding: 16px;
+  margin-bottom: 12px;
+}
+.mock-row { display: flex; gap: 12px; margin-top: 12px; flex-wrap: wrap; }
+.mock-box {
+  min-width: 120px;
+  padding: 12px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.06);
+  color: #d9e7f7;
+  font-size: 13px;
+}
+.mock-box.highlight { background: rgba(98, 168, 255, 0.18); }
+.mock-box.good { background: rgba(122, 225, 123, 0.18); }
+.mock-box.warn { background: rgba(255, 201, 119, 0.18); }
+.steps { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; }
+.step {
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--line);
+  padding: 16px;
+}
+.step strong { display: block; margin-bottom: 8px; color: var(--teal); }
+.tip {
+  padding: 18px 20px;
+  margin-top: 18px;
+  background: rgba(255, 201, 119, 0.08);
+  border-color: rgba(255, 201, 119, 0.18);
+}
+.footer {
+  margin-top: 18px;
+  color: var(--muted);
+  font-size: 14px;
+}

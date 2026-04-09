@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>通关查询中心 - AMS Assistant</title>
+  <link rel="stylesheet" href="./style.css">
+</head>
+<body>
+  <div class="wrap">
+    <section class="hero">
+      <div class="pill">通关查询中心</div>
+      <h1>登录网站、测试一票、整表回填</h1>
+      <p>这块功能适合“网站能查到结果，但人工一票票抄回 Excel 很烦”的场景。建议普通用户先保存一次登录态，再做单票测试，最后才做整表自动回填。</p>
+      <div class="nav">
+        <a href="./index.html">帮助首页</a>
+        <a href="./contract.html">合同生成中心</a>
+        <span class="active">通关查询中心</span>
+        <a href="./sync.html">表格自动同步</a>
+      </div>
+    </section>
+
+    <section class="shot">
+      <div class="shot-title">界面示意：登录和检测</div>
+      <img class="real-shot" src="./screens/clearance.png" alt="通关查询中心截图">
+    </section>
+
+    <section class="shot">
+      <div class="shot-title">界面结构示意</div>
+      <div class="mock-app">
+        <div class="mock-header">通关查询中心 - 网站登录</div>
+        <div class="mock-main">
+          <div class="mock-sidebar">
+            <div class="mock-chip active">首次登录并保存登录态</div>
+            <div class="mock-chip">检查登录态</div>
+            <div class="mock-chip">打开登录态目录</div>
+          </div>
+          <div class="mock-content">
+            <div class="mock-card">
+              <strong>建议先做这一步</strong>
+              <p>先把这台电脑的可用登录状态保存下来，后面才好复用。</p>
+            </div>
+            <div class="mock-row">
+              <div class="mock-box highlight">打开浏览器并登录</div>
+              <div class="mock-box good">保存 session</div>
+              <div class="mock-box">验证登录状态</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel" style="margin-top:18px;">
+      <h2>最推荐的实际操作步骤</h2>
+      <div class="steps">
+        <div class="step">
+          <strong>第 1 步：保存登录态</strong>
+          点“首次登录并保存登录态”。浏览器会打开，你正常登录即可。第一次一定先做这个。
+        </div>
+        <div class="step">
+          <strong>第 2 步：检查登录态</strong>
+          登录保存后，建议立刻点“检查登录态”，确认这台电脑后续可复用。
+        </div>
+        <div class="step">
+          <strong>第 3 步：单票测试</strong>
+          输入一票提单号、报关单号或箱号，点“查询这一票”，先确认网站查得通。
+        </div>
+        <div class="step">
+          <strong>第 4 步：整表回填</strong>
+          打开固定输入 Excel，填好业务表，保存关闭，再回到应用里点“用当前输入表自动回填”。
+        </div>
+      </div>
+    </section>
+
+    <section class="shot">
+      <div class="shot-title">界面示意：单票测试和整表回填</div>
+      <div class="mock-app">
+        <div class="mock-header">通关查询中心 - 查询与回填</div>
+        <div class="mock-content">
+          <div class="mock-row">
+            <div class="mock-box highlight">输入 blNo / entryNo / ctnrNo</div>
+            <div class="mock-box good">查询这一票</div>
+            <div class="mock-box">打开查询结果目录</div>
+          </div>
+          <div class="mock-row">
+            <div class="mock-box highlight">用当前输入表自动回填</div>
+            <div class="mock-box good">00-latest-clearance-workbook.xlsx</div>
+            <div class="mock-box">00-latest-site-report.txt</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel" style="margin-top:18px;">
+      <h2>最容易踩坑的地方</h2>
+      <ul>
+        <li>网站登录态过期了，但没有先做“检查登录态”。</li>
+        <li>输入 Excel 还开着，程序更新工作簿时被 Excel 占用。</li>
+        <li>一上来就整表回填，没有先做单票测试，结果定位问题更难。</li>
+      </ul>
+    </section>
+
+    <div class="tip">
+      普通用户建议永远遵循“保存登录态 → 检查登录态 → 单票测试 → 整表回填”的顺序，这样最稳。
+    </div>
+  </div>
+</body>
+</html>

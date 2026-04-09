@@ -22,6 +22,7 @@ PREVIEW_ROOT = ROOT / "普通用户体验区-桌面应用版-release预览"
 PREVIEW_APP_ROOT = PREVIEW_ROOT / "app"
 PREVIEW_USER_DATA_ROOT = PREVIEW_ROOT / "user-data"
 GUIDE_SOURCE = ROOT / "desktop_app" / "release_assets" / "应用使用说明.html"
+HELP_SOURCE = ROOT / "desktop_app" / "release_assets" / "help"
 EXCLUDED_MODULES = [
     "IPython",
     "boto3",
@@ -193,6 +194,7 @@ def copy_preview_assets(bundle_dir: Path) -> None:
     PREVIEW_APP_ROOT.mkdir(parents=True, exist_ok=True)
     PREVIEW_USER_DATA_ROOT.mkdir(parents=True, exist_ok=True)
     shutil.copytree(bundle_dir, PREVIEW_APP_ROOT / APP_FOLDER_NAME)
+    shutil.copytree(HELP_SOURCE, PREVIEW_ROOT / "help")
 
     shutil.copy2(GUIDE_SOURCE, PREVIEW_ROOT / "README.html")
     shutil.copy2(GUIDE_SOURCE, PREVIEW_ROOT / "00-从这里开始.html")
@@ -224,8 +226,8 @@ def copy_preview_assets(bundle_dir: Path) -> None:
     write_text(
         PREVIEW_USER_DATA_ROOT / "README.txt",
         (
-            "Do not delete this folder if you want to keep your settings, req1/req2 files, "
-            "or req2 website session.\r\n"
+            "Do not delete this folder if you want to keep your settings, workspace files, "
+            "sync tasks, or clearance site session.\r\n"
         ),
     )
 

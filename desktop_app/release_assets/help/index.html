@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AMS Assistant 帮助中心</title>
+  <link rel="stylesheet" href="./style.css">
+</head>
+<body>
+  <div class="wrap">
+    <section class="hero">
+      <div class="pill">AMS Assistant Help Center</div>
+      <h1>帮助中心</h1>
+      <p>这里给普通用户准备了按功能拆开的使用说明。你不需要先理解代码结构，也不需要背脚本命令，只需要点开对应功能，照着页面一步一步走。</p>
+      <div class="nav">
+        <span class="active">帮助首页</span>
+        <a href="./contract.html">合同生成中心</a>
+        <a href="./clearance.html">通关查询中心</a>
+        <a href="./lineup.html">船期与港区矩阵</a>
+        <a href="./sync.html">表格自动同步</a>
+      </div>
+    </section>
+
+    <section class="shot">
+      <div class="shot-title">你在一个应用里能看到什么</div>
+      <img class="real-shot" src="./screens/home.png" alt="AMS Assistant 首页截图">
+    </section>
+
+    <section class="shot">
+      <div class="shot-title">首页结构示意</div>
+      <div class="mock-app">
+        <div class="mock-header">AMS Assistant Desktop</div>
+        <div class="mock-main">
+          <div class="mock-sidebar">
+            <div class="mock-chip active">首页</div>
+            <div class="mock-chip">合同生成中心</div>
+            <div class="mock-chip">通关查询中心</div>
+            <div class="mock-chip">船期与港区矩阵</div>
+            <div class="mock-chip">表格自动同步</div>
+            <div class="mock-chip">设置</div>
+          </div>
+          <div class="mock-content">
+            <div class="mock-card">
+              <strong>首页</strong>
+              <p>进入后先看工作区、帮助入口、反馈入口和更新状态。</p>
+            </div>
+            <div class="mock-row">
+              <div class="mock-box highlight">打开固定输入文件</div>
+              <div class="mock-box good">执行功能</div>
+              <div class="mock-box">查看结果</div>
+              <div class="mock-box warn">打开说明</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="grid" style="margin-top:18px;">
+      <section class="panel">
+        <h2>先看哪一页</h2>
+        <ul>
+          <li><a href="./contract.html">合同生成中心</a>：适合要从 Excel 直接生成 Word 合同的人。</li>
+          <li><a href="./clearance.html">通关查询中心</a>：适合要保存网页登录态、查放行状态、回填工作簿的人。</li>
+          <li><a href="./sync.html">表格自动同步</a>：适合要持续监控源表并把指定字段写入目标表的人。</li>
+          <li><a href="./lineup.html">船期与港区矩阵</a>：当前还是预留入口，但你也可以先看规划说明。</li>
+        </ul>
+      </section>
+
+      <section class="panel">
+        <h2>最短上手顺序</h2>
+        <ol>
+          <li>先点进你要使用的功能页。</li>
+          <li>先打开固定输入文件或示例文件。</li>
+          <li>按说明完成一次从输入到结果的最短闭环。</li>
+          <li>如果遇到别扭的地方，直接发邮件到 <a href="mailto:cyh29hao@sjtu.edu.cn">cyh29hao@sjtu.edu.cn</a>。</li>
+        </ol>
+      </section>
+    </div>
+
+    <div class="tip">
+      这套帮助文档默认建议用浏览器打开。浏览器对中文编码和页面布局更稳，也更适合给不愿意折腾文件结构的人直接照着做。
+    </div>
+  </div>
+</body>
+</html>

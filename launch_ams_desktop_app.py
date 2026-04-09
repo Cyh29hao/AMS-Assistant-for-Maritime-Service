@@ -6,7 +6,9 @@ import sys
 from pathlib import Path
 
 from desktop_app.app import main as gui_main
-from desktop_app.runtime import AmsOperations, AppConfig, release_assets_dir, skill_root
+from desktop_app.excel_sync_engine import DEFAULT_SETTINGS as DEFAULT_SYNC_SETTINGS
+from desktop_app.excel_sync_engine import SyncTask, create_demo_workbooks, sync_task
+from desktop_app.runtime import AmsOperations, AppConfig, help_assets_dir, release_assets_dir, skill_root
 
 
 def run_self_test(output_path: Path, workspace_root: Path | None = None) -> int:
@@ -16,20 +18,39 @@ def run_self_test(output_path: Path, workspace_root: Path | None = None) -> int:
 
     example_dir = skill_root() / "examples" / "workbooks"
     example_workbook = next(example_dir.glob("domestic-forwarder-*.xlsx"))
-    req1_result = ops.req1_generate_from_file(example_workbook)
+    req1_result = ops.contract_generate_from_file(example_workbook)
+
+    sync_demo = create_demo_workbooks(ops.sync_examples_dir)
+    sync_result = sync_task(
+        SyncTask(
+            name="自检任务",
+            source_file=str(sync_demo["source_path"]),
+            source_sheet="Orders",
+            target_file=str(sync_demo["target_path"]),
+            target_sheet="Export",
+            columns_by_header=["订单号", "船名", "状态"],
+            header_row=1,
+            data_start_row=2,
+        ),
+        DEFAULT_SYNC_SETTINGS,
+    )
 
     report = {
         "success": True,
         "frozen": bool(getattr(sys, "frozen", False)),
         "workspace_root": info["workspace_root"],
-        "req1_input_path": info["req1_input_path"],
-        "req2_input_path": info["req2_input_path"],
+        "contract_input_path": info["contract_input_path"],
+        "clearance_input_path": info["clearance_input_path"],
         "req1_document_path": req1_result["document_path"],
         "req1_summary_path": req1_result["summary_path"],
         "req1_latest_document_path": req1_result["latest_document_path"],
         "req1_latest_summary_path": req1_result["latest_summary_path"],
         "req1_latest_document_exists": Path(req1_result["latest_document_path"]).exists(),
         "req1_latest_summary_exists": Path(req1_result["latest_summary_path"]).exists(),
+        "sync_demo_source_path": str(sync_demo["source_path"]),
+        "sync_demo_target_path": str(sync_demo["target_path"]),
+        "sync_target_exists": sync_result.path.exists(),
+        "help_index_exists": (help_assets_dir() / "index.html").exists(),
         "guide_exists": (release_assets_dir() / "应用使用说明.html").exists(),
     }
     output_path.parent.mkdir(parents=True, exist_ok=True)

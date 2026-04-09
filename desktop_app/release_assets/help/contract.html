@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>合同生成中心 - AMS Assistant</title>
+  <link rel="stylesheet" href="./style.css">
+</head>
+<body>
+  <div class="wrap">
+    <section class="hero">
+      <div class="pill">合同生成中心</div>
+      <h1>从 Excel 一键生成 Word 合同</h1>
+      <p>这块功能适合“合同数据已经在表里，但不想再手动进 Word 重抄一遍”的场景。对普通用户来说，核心体验就是：打开固定输入表、填数据、保存、回到应用里点一次。</p>
+      <div class="nav">
+        <a href="./index.html">帮助首页</a>
+        <span class="active">合同生成中心</span>
+        <a href="./clearance.html">通关查询中心</a>
+        <a href="./sync.html">表格自动同步</a>
+      </div>
+    </section>
+
+    <section class="shot">
+      <div class="shot-title">界面示意：你会点到的东西</div>
+      <img class="real-shot" src="./screens/contract.png" alt="合同生成中心截图">
+    </section>
+
+    <section class="shot">
+      <div class="shot-title">界面结构示意</div>
+      <div class="mock-app">
+        <div class="mock-header">合同生成中心</div>
+        <div class="mock-main">
+          <div class="mock-sidebar">
+            <div class="mock-chip active">打开输入 Excel</div>
+            <div class="mock-chip">重新生成空白模板</div>
+            <div class="mock-chip">一键生成合同</div>
+            <div class="mock-chip">打开结果目录</div>
+            <div class="mock-chip">打开最新合同</div>
+          </div>
+          <div class="mock-content">
+            <div class="mock-card">
+              <strong>当前输入文件</strong>
+              <p>固定在工作区里，不需要你自己翻文件夹找。</p>
+            </div>
+            <div class="mock-row">
+              <div class="mock-box highlight">contract-input.xlsx</div>
+              <div class="mock-box good">00-latest-contract.docx</div>
+              <div class="mock-box">summary.json</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel" style="margin-top:18px;">
+      <h2>最推荐的实际操作步骤</h2>
+      <div class="steps">
+        <div class="step">
+          <strong>第 1 步：打开输入表</strong>
+          在桌面应用里点“打开输入 Excel”。不要自己乱找模板，直接用应用固定好的那份。
+        </div>
+        <div class="step">
+          <strong>第 2 步：填写关键字段</strong>
+          把船名、港口、laycan、费用、货物明细这些字段填好。填完后请保存并关闭 Excel。
+        </div>
+        <div class="step">
+          <strong>第 3 步：一键生成</strong>
+          回到桌面应用，点击“一键生成合同”。程序会自动读取刚才那张表并生成 Word。
+        </div>
+        <div class="step">
+          <strong>第 4 步：看结果</strong>
+          可以点“打开结果目录”，也可以直接点“打开最新合同”。后者最适合普通用户验收。
+        </div>
+      </div>
+    </section>
+
+    <section class="shot">
+      <div class="shot-title">结果示意：普通用户最该看的结果入口</div>
+      <div class="mock-app">
+        <div class="mock-header">输出结果</div>
+        <div class="mock-content">
+          <div class="mock-card">
+            <strong>固定入口文件</strong>
+            <p>如果你不想记复杂文件名，就直接找这个。</p>
+          </div>
+          <div class="mock-row">
+            <div class="mock-box good">00-latest-contract.docx</div>
+            <div class="mock-box">00-latest-summary.json</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel" style="margin-top:18px;">
+      <h2>最容易踩坑的地方</h2>
+      <ul>
+        <li>Excel 没保存就回到应用点生成，结果当然还是旧数据。</li>
+        <li>Excel 或 Word 没关闭，文件被占用时会报权限错误。</li>
+        <li>日期、港口、合同类型、货物明细没填全时，字段校验会失败。</li>
+      </ul>
+    </section>
+
+    <div class="tip">
+      如果你觉得模板字段还需要调整，或者某类合同的规则不够贴近实际业务，可以直接写邮件到 <a href="mailto:cyh29hao@sjtu.edu.cn">cyh29hao@sjtu.edu.cn</a>。
+    </div>
+  </div>
+</body>
+</html>

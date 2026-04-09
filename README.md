@@ -14,7 +14,7 @@
     <img alt="Release" src="https://img.shields.io/github/v/release/Cyh29hao/AMS-Assistant-for-Maritime-Service?display_name=tag&label=release&color=0f766e" />
   </a>
   <img alt="Platform" src="https://img.shields.io/badge/platform-Windows-0f172a?logo=windows&logoColor=white" />
-  <img alt="Workflows" src="https://img.shields.io/badge/workflows-Req1%20%7C%20Req2%20%7C%20Req3-0b6bcb" />
+  <img alt="Features" src="https://img.shields.io/badge/features-contract%20%7C%20clearance%20%7C%20lineup%20%7C%20sync-0b6bcb" />
   <img alt="Mode" src="https://img.shields.io/badge/mode-local--first%20desktop-1d4ed8" />
   <img alt="Status" src="https://img.shields.io/badge/status-prototype%20to%20delivery-f59e0b" />
 </p>
@@ -36,9 +36,10 @@
 
 AMS Assistant 的目标不是做一个只会聊天的 maritime copilot，而是做一个能真正落到业务动作上的本地桌面工作台：
 
-- `Req1 系统出合同`：在 Excel 填好数据后，一键生成 Word 合同。
-- `Req2 自动查通关`：复用本地保存的网页登录态，查状态并把结果回填到工作簿。
-- `Req3 船期表`：入口已预留，后续继续接入实际工作流。
+- `合同生成中心`：在 Excel 填好数据后，一键生成 Word 合同。
+- `通关查询中心`：复用本地保存的网页登录态，查状态并把结果回填到工作簿。
+- `船期与港区矩阵`：入口已预留，后续继续接入实际工作流。
+- `表格自动同步`：监控源 Excel，把指定字段自动写入目标 Excel。
 
 它更像一个把“人手在 Excel、Word、浏览器之间搬运数据”的过程压缩起来的本地应用，而不是单独一条脚本。
 
@@ -52,11 +53,11 @@ AMS Assistant 的目标不是做一个只会聊天的 maritime copilot，而是�
 
 | 模块 | 普通用户能感受到什么 | 当前状态 |
 | --- | --- | --- |
-| `Req1 系统出合同` | 填 Excel，点一次，得到 Word 合同和固定命名的最新结果文件 | 已可用 |
-| `Req2 自动查通关` | 保存一次登录态后，按提单号批量查询并回填业务表 | 已可用 |
-| `Req2 网站查询层` | 登录检查、单票测试、整表更新、结果留档 | 已可用 |
-| `Req3 船期表` | 入口、目录和扩展位置已经预留 | 待继续实现 |
-| `Desktop App` | 通过 GUI 统一进入 req1 / req2 / req3，而不是翻文件夹找脚本 | 已可用 |
+| `合同生成中心` | 填 Excel，点一次，得到 Word 合同和固定命名的最新结果文件 | 已可用 |
+| `通关查询中心` | 保存一次登录态后，按提单号批量查询并回填业务表 | 已可用 |
+| `船期与港区矩阵` | 入口、目录和扩展位置已经预留 | 待继续实现 |
+| `表格自动同步` | 配置同步任务，后台监控源表并自动写入目标表 | 已可用 |
+| `Desktop App` | 通过 GUI 统一进入四个功能，而不是翻文件夹找脚本 | 已可用 |
 
 ## 如果你只是想直接使用
 
@@ -65,7 +66,7 @@ AMS Assistant 的目标不是做一个只会聊天的 maritime copilot，而是�
 1. 打开 [Releases 页面](https://github.com/Cyh29hao/AMS-Assistant-for-Maritime-Service/releases)。
 2. 下载最新的桌面版压缩包。
 3. 解压后，双击 `1-启动AMS桌面应用.bat`。
-4. 在桌面应用里体验 `Req1 出合同` 和 `Req2 查通关`。
+4. 在桌面应用里体验 `合同生成中心`、`通关查询中心` 和 `表格自动同步`。
 
 ### 你会得到什么体验
 
@@ -73,13 +74,14 @@ AMS Assistant 的目标不是做一个只会聊天的 maritime copilot，而是�
 - 不用自己拼接脚本命令。
 - 常用入口集中在一个本地 GUI 里。
 - 配置和工作区与应用本体分离，后续更新更容易保留既有设置。
+- 应用里自带帮助中心、截图说明、反馈入口和检查更新按钮。
 
 ## 为什么这套东西比“几个零散脚本”更值得继续做
 
 - `本地优先`：业务文件、登录态、工作区都留在本机，更贴近实际业务场景。
 - `面向交付`：不仅有脚本，还有批处理入口、桌面 GUI、示例、验收路径和文档。
 - `面向更新`：桌面版已经按“程序本体”和“用户数据”分离的方向组织，后续更适合做 release、做升级、做配置保留。
-- `面向真实工作流`：Req1 和 Req2 都不是只停留在 demo 文案，而是已经能跑通真实输入到真实输出。
+- `面向真实工作流`：合同生成、通关查询和表格自动同步都不是只停留在 demo 文案，而是已经能跑通真实输入到真实输出。
 
 ## 仓库结构怎么读最清楚
 
@@ -111,8 +113,7 @@ AMS Assistant 的目标不是做一个只会聊天的 maritime copilot，而是�
 1. [maritime-service/README.md](./maritime-service/README.md)
 2. [maritime-service/开始看这里.md](./maritime-service/%E5%BC%80%E5%A7%8B%E7%9C%8B%E8%BF%99%E9%87%8C.md)
 3. [maritime-service/docs/00-如何验收这套skill.md](./maritime-service/docs/00-%E5%A6%82%E4%BD%95%E9%AA%8C%E6%94%B6%E8%BF%99%E5%A5%97skill.md)
-4. [maritime-service/docs/10-req2-如何验收.md](./maritime-service/docs/10-req2-%E5%A6%82%E4%BD%95%E9%AA%8C%E6%94%B6.md)
 
 ## 当前定位，一句话说清
 
-这是一个已经开始具备“可下载、可演示、可验收、可继续落地”的航运业务自动化桌面产品雏形，同时也保留了足够完整的实施仓库结构，方便继续扩 Req3、继续接新站点、继续把原型往真实业务交付推进。
+这是一个已经开始具备“可下载、可演示、可验收、可继续落地”的航运业务自动化桌面产品雏形，同时也保留了足够完整的实施仓库结构，方便继续扩船期能力、继续接新站点、继续把原型往真实业务交付推进。
