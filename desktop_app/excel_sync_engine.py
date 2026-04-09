@@ -50,6 +50,7 @@ class SyncTask:
     target_sheet: str = ""
     target_mode: str = "replace_sheet"
     target_start_cell: str = "A1"
+    column_selection_mode: str = "include"
     columns_by_header: list[str] = field(default_factory=list)
     header_row: int = 1
     data_start_row: int = 2
@@ -80,27 +81,31 @@ class SyncResult:
     cols_written: int
 
 
-def create_demo_workbooks(sample_dir: Path) -> dict[str, Path]:
+def create_demo_workbooks(sample_dir: Path, force: bool = False) -> dict[str, Path]:
     sample_dir.mkdir(parents=True, exist_ok=True)
     source_path = sample_dir / "示例-源表.xlsx"
     target_path = sample_dir / "示例-目标表.xlsx"
 
-    if not source_path.exists():
+    if force or not source_path.exists():
         wb = openpyxl.Workbook()
         ws = wb.active
         ws.title = "Orders"
         rows = [
             ["订单号", "船名", "港口", "柜量", "状态", "备注"],
             ["SO-1001", "MORNING TIDE", "上海", 24, "待确认", "首票"],
-            ["SO-1002", "PACIFIC LINK", "宁波", 18, "已确认", ""],
+            ["SO-1002", "PACIFIC LINK", "宁波", 18, "已确认", "隐藏行也要保留"],
+            ["", "", "", "", "", ""],
             ["SO-1003", "BLUE ORBIT", "青岛", 32, "待确认", "需复核"],
         ]
         for row in rows:
             ws.append(row)
+        ws.row_dimensions[3].hidden = True
+        ws.row_dimensions[4].height = 22
+        ws.column_dimensions["F"].hidden = True
         wb.save(source_path)
         wb.close()
 
-    if not target_path.exists():
+    if force or not target_path.exists():
         wb = openpyxl.Workbook()
         ws = wb.active
         ws.title = "Export"
@@ -158,8 +163,8 @@ def sync_task(task: SyncTask, settings: dict) -> SyncResult:
         raise ValueError("必须先选择目标 Excel 和目标工作表。")
     if task.target_mode == "write_from_cell" and not task.target_start_cell:
         raise ValueError("当目标写入方式为从单元格开始时，必须填写起始单元格。")
-    if not task.columns_by_header:
-        raise ValueError("至少要勾选一列需要同步的字段。")
+    if task.column_selection_mode == "include" and not task.columns_by_header:
+        raise ValueError("至少要勾选一列需要保留的字段。")
 
     source_path = Path(task.source_file).resolve()
     if source_path.name.startswith("~$"):
@@ -187,34 +192,19 @@ def sync_task(task: SyncTask, settings: dict) -> SyncResult:
 
             src_ws = wb[task.source_sheet]
             src_ws_values = wb_values[task.source_sheet]
-            source_columns = _get_selected_columns(src_ws, task)
-            header_row, exported_rows = _get_export_row_indices(src_ws, task, source_columns)
-            row_count = (1 if task.include_header else 0) + len(exported_rows)
-            col_count = len(source_columns)
+            retained_columns = _get_retained_columns(src_ws, task)
+            source_rows = _get_export_row_indices(src_ws, task, retained_columns)
+            row_count = len(source_rows)
+            col_count = len(retained_columns)
 
             out_wb, dst_ws, target_start_row, target_start_col = _prepare_target_workbook(task, row_count, col_count)
             target_row_idx = target_start_row
             target_row_map: dict[int, int] = {}
+            source_col_map = {source_col: target_start_col + offset for offset, source_col in enumerate(retained_columns)}
 
-            if task.include_header:
-                target_row_map[header_row] = target_row_idx
-                for offset, source_col_idx in enumerate(source_columns):
-                    src_cell = src_ws.cell(header_row, source_col_idx)
-                    src_value_cell = src_ws_values.cell(header_row, source_col_idx)
-                    dst_cell = dst_ws.cell(
-                        target_row_idx,
-                        target_start_col + offset,
-                        _export_value(src_cell, src_value_cell, task),
-                    )
-                    if task.copy_style:
-                        _copy_cell_style(src_cell, dst_cell)
-                if task.copy_row_heights:
-                    _apply_row_height(src_ws, dst_ws, header_row, target_row_idx)
-                target_row_idx += 1
-
-            for source_row_idx in exported_rows:
+            for source_row_idx in source_rows:
                 target_row_map[source_row_idx] = target_row_idx
-                for offset, source_col_idx in enumerate(source_columns):
+                for offset, source_col_idx in enumerate(retained_columns):
                     src_cell = src_ws.cell(source_row_idx, source_col_idx)
                     src_value_cell = src_ws_values.cell(source_row_idx, source_col_idx)
                     dst_cell = dst_ws.cell(
@@ -224,14 +214,16 @@ def sync_task(task: SyncTask, settings: dict) -> SyncResult:
                     )
                     if task.copy_style:
                         _copy_cell_style(src_cell, dst_cell)
+                    _copy_cell_extras(src_cell, dst_cell)
                 if task.copy_row_heights:
                     _apply_row_height(src_ws, dst_ws, source_row_idx, target_row_idx)
                 target_row_idx += 1
 
             if task.copy_column_widths:
-                _apply_column_widths(src_ws, dst_ws, source_columns, target_start_col)
+                _apply_column_widths(src_ws, dst_ws, retained_columns, target_start_col)
             if task.copy_style:
-                _clone_merged_cells(src_ws, dst_ws, source_columns, target_row_map, target_start_col)
+                _clone_merged_cells(src_ws, dst_ws, retained_columns, target_row_map, target_start_col)
+            _copy_sheet_settings(src_ws, dst_ws, source_col_map, target_row_map)
 
             out_wb.save(target_path)
             return SyncResult(path=target_path, rows_written=row_count, cols_written=col_count)
@@ -528,12 +520,16 @@ def _normalize_cell(cell: str) -> str:
 
 
 def _copy_cell_style(src_cell, dst_cell) -> None:
-    dst_cell.font = copy.copy(src_cell.font)
-    dst_cell.fill = copy.copy(src_cell.fill)
-    dst_cell.border = copy.copy(src_cell.border)
-    dst_cell.alignment = copy.copy(src_cell.alignment)
-    dst_cell.number_format = src_cell.number_format
-    dst_cell.protection = copy.copy(src_cell.protection)
+    dst_cell._style = copy.copy(src_cell._style)
+
+
+def _copy_cell_extras(src_cell, dst_cell) -> None:
+    if src_cell.comment is not None:
+        dst_cell.comment = copy.copy(src_cell.comment)
+    if src_cell.hyperlink is not None:
+        dst_cell._hyperlink = copy.copy(src_cell.hyperlink)
+        if dst_cell._hyperlink is not None:
+            dst_cell._hyperlink.ref = dst_cell.coordinate
 
 
 def _row_is_empty(ws, row_idx: int, source_columns: list[int]) -> bool:
@@ -547,15 +543,25 @@ def _apply_column_widths(src_ws, dst_ws, source_columns: list[int], dest_start_c
     for offset, source_col_idx in enumerate(source_columns):
         source_letter = get_column_letter(source_col_idx)
         target_letter = get_column_letter(dest_start_col + offset)
-        dst_ws.column_dimensions[target_letter].width = src_ws.column_dimensions[source_letter].width
-        dst_ws.column_dimensions[target_letter].hidden = src_ws.column_dimensions[source_letter].hidden
+        src_dim = src_ws.column_dimensions[source_letter]
+        dst_dim = dst_ws.column_dimensions[target_letter]
+        dst_dim.width = src_dim.width
+        dst_dim.hidden = src_dim.hidden
+        dst_dim.bestFit = src_dim.bestFit
+        dst_dim.outlineLevel = src_dim.outlineLevel
+        dst_dim.collapsed = src_dim.collapsed
 
 
 def _apply_row_height(src_ws, dst_ws, source_row_idx: int, target_row_idx: int) -> None:
     src_dim = src_ws.row_dimensions[source_row_idx]
     if src_dim.height is not None:
         dst_ws.row_dimensions[target_row_idx].height = src_dim.height
-    dst_ws.row_dimensions[target_row_idx].hidden = src_dim.hidden
+    dst_dim = dst_ws.row_dimensions[target_row_idx]
+    dst_dim.hidden = src_dim.hidden
+    dst_dim.outlineLevel = src_dim.outlineLevel
+    dst_dim.collapsed = src_dim.collapsed
+    dst_dim.thickTop = src_dim.thickTop
+    dst_dim.thickBot = src_dim.thickBot
 
 
 def _clone_merged_cells(
@@ -580,44 +586,100 @@ def _clone_merged_cells(
         )
 
 
-def _get_source_bounds(ws, task: SyncTask) -> tuple[int, int, int, int, int]:
+def _copy_sheet_settings(src_ws, dst_ws, source_col_map: dict[int, int], target_row_map: dict[int, int]) -> None:
+    dst_ws.sheet_state = src_ws.sheet_state
+    dst_ws.sheet_format = copy.copy(src_ws.sheet_format)
+    dst_ws.sheet_properties = copy.copy(src_ws.sheet_properties)
+    dst_ws.page_margins = copy.copy(src_ws.page_margins)
+    dst_ws.page_setup = copy.copy(src_ws.page_setup)
+    dst_ws.print_options = copy.copy(src_ws.print_options)
+    try:
+        dst_ws.sheet_view = copy.copy(src_ws.sheet_view)
+    except Exception:
+        pass
+    freeze_panes = _map_freeze_panes(src_ws.freeze_panes, source_col_map, target_row_map)
+    if freeze_panes is not None:
+        dst_ws.freeze_panes = freeze_panes
+    mapped_filter = _map_range_ref(getattr(src_ws.auto_filter, "ref", None), source_col_map, target_row_map)
+    if mapped_filter is not None:
+        dst_ws.auto_filter.ref = mapped_filter
+
+
+def _map_freeze_panes(source_freeze, source_col_map: dict[int, int], target_row_map: dict[int, int]) -> str | None:
+    if not source_freeze:
+        return None
+    coordinate = source_freeze.coordinate if hasattr(source_freeze, "coordinate") else str(source_freeze)
+    row_idx, col_idx = coordinate_to_tuple(coordinate)
+    mapped_row = target_row_map.get(row_idx)
+    mapped_candidates = [mapped for source, mapped in sorted(source_col_map.items()) if source >= col_idx]
+    if mapped_row is None or not mapped_candidates:
+        return None
+    return f"{get_column_letter(mapped_candidates[0])}{mapped_row}"
+
+
+def _map_range_ref(range_ref: str | None, source_col_map: dict[int, int], target_row_map: dict[int, int]) -> str | None:
+    if not range_ref:
+        return None
+    min_col, min_row, max_col, max_row = range_boundaries(range_ref)
+    retained_cols = [mapped for source, mapped in source_col_map.items() if min_col <= source <= max_col]
+    retained_rows = [mapped for source, mapped in target_row_map.items() if min_row <= source <= max_row]
+    if not retained_cols or not retained_rows:
+        return None
+    start_col = min(retained_cols)
+    end_col = max(retained_cols)
+    start_row = min(retained_rows)
+    end_row = max(retained_rows)
+    return f"{get_column_letter(start_col)}{start_row}:{get_column_letter(end_col)}{end_row}"
+
+
+def _get_source_bounds(ws, task: SyncTask) -> tuple[int, int, int, int, int, int]:
     if task.source_mode == "custom_range":
         min_col, min_row, max_col, max_row = range_boundaries(_normalize_excel_range(task.source_range))
         header_row = min_row
         data_start_row = min_row + 1
-        return min_col, max_col, max_row, header_row, data_start_row
-    return 1, ws.max_column, ws.max_row, task.header_row, task.data_start_row
+        return min_col, min_row, max_col, max_row, header_row, data_start_row
+    return 1, 1, ws.max_column, ws.max_row, task.header_row, task.data_start_row
 
 
-def _get_selected_columns(ws, task: SyncTask) -> list[int]:
-    min_col, max_col, _, header_row, _ = _get_source_bounds(ws, task)
-    header_map: dict[str, int] = {}
+def _get_retained_columns(ws, task: SyncTask) -> list[int]:
+    min_col, _, max_col, _, header_row, _ = _get_source_bounds(ws, task)
+    header_map: dict[str, list[int]] = {}
     for col_idx in range(min_col, max_col + 1):
         header_value = ws.cell(header_row, col_idx).value
         if header_value in (None, ""):
             continue
-        header_map[str(header_value).strip()] = col_idx
+        header_map.setdefault(str(header_value).strip(), []).append(col_idx)
 
-    selected: list[int] = []
+    selected: set[int] = set()
     missing: list[str] = []
     for header in task.columns_by_header:
         if header in header_map:
-            selected.append(header_map[header])
+            selected.update(header_map[header])
         else:
             missing.append(header)
     if missing:
         raise ValueError(f"缺少这些表头: {', '.join(missing)}")
-    return selected
+    if task.column_selection_mode == "include":
+        return [col_idx for col_idx in range(min_col, max_col + 1) if col_idx in selected]
+    retained = [col_idx for col_idx in range(min_col, max_col + 1) if col_idx not in selected]
+    if not retained:
+        raise ValueError("排除勾选列后，已经没有剩余列可以复制。")
+    return retained
 
 
-def _get_export_row_indices(ws, task: SyncTask, source_columns: list[int]) -> tuple[int, list[int]]:
-    _, _, max_row, header_row, data_start_row = _get_source_bounds(ws, task)
+def _get_export_row_indices(ws, task: SyncTask, source_columns: list[int]) -> list[int]:
+    _, min_row, _, max_row, header_row, data_start_row = _get_source_bounds(ws, task)
+    if task.column_selection_mode == "exclude":
+        return list(range(min_row, max_row + 1))
+
     exported_rows: list[int] = []
-    for source_row_idx in range(data_start_row, max_row + 1):
+    if task.include_header:
+        exported_rows.append(header_row)
+    for source_row_idx in range(max(data_start_row, header_row + (1 if task.include_header else 0)), max_row + 1):
         if task.drop_empty_rows and _row_is_empty(ws, source_row_idx, source_columns):
             continue
         exported_rows.append(source_row_idx)
-    return header_row, exported_rows
+    return exported_rows
 
 
 def _export_value(src_formula_cell, src_value_cell, task: SyncTask):
@@ -647,8 +709,9 @@ def _build_sheet_signature(task: SyncTask) -> str:
 
         ws = workbook[task.source_sheet]
         ws_values = workbook_values[task.source_sheet]
-        source_columns = _get_selected_columns(ws, task)
-        header_row, exported_rows = _get_export_row_indices(ws, task, source_columns)
+        retained_columns = _get_retained_columns(ws, task)
+        source_rows = _get_export_row_indices(ws, task, retained_columns)
+        _, min_row, _, max_row, header_row, _ = _get_source_bounds(ws, task)
         digest = hashlib.sha256()
         _update_digest(
             digest,
@@ -663,40 +726,44 @@ def _build_sheet_signature(task: SyncTask) -> str:
             task.copy_column_widths,
             task.copy_row_heights,
             task.formula_handling,
+            task.column_selection_mode,
             "|".join(task.columns_by_header),
         )
 
-        if task.include_header:
-            for source_col_idx in source_columns:
-                src_cell = ws.cell(header_row, source_col_idx)
-                src_value_cell = ws_values.cell(header_row, source_col_idx)
-                _update_digest(
-                    digest,
-                    "header",
-                    header_row,
-                    source_col_idx,
-                    src_cell.data_type,
-                    src_cell.value,
-                    src_value_cell.value,
-                    src_cell.number_format,
-                    src_cell.style_id,
-                )
-            if task.copy_row_heights:
-                row_dim = ws.row_dimensions[header_row]
-                _update_digest(digest, "row-dim", header_row, row_dim.height, row_dim.hidden)
+        if task.column_selection_mode == "exclude":
+            _update_digest(digest, "row-span", min_row, max_row)
 
         if task.copy_column_widths:
-            for source_col_idx in source_columns:
+            for source_col_idx in retained_columns:
                 col_letter = get_column_letter(source_col_idx)
                 col_dim = ws.column_dimensions[col_letter]
-                _update_digest(digest, "col-dim", source_col_idx, col_dim.width, col_dim.hidden)
+                _update_digest(
+                    digest,
+                    "col-dim",
+                    source_col_idx,
+                    col_dim.width,
+                    col_dim.hidden,
+                    col_dim.bestFit,
+                    col_dim.outlineLevel,
+                    col_dim.collapsed,
+                )
 
-        exported_row_set = set(exported_rows)
-        for source_row_idx in exported_rows:
+        exported_row_set = set(source_rows)
+        for source_row_idx in source_rows:
             if task.copy_row_heights:
                 row_dim = ws.row_dimensions[source_row_idx]
-                _update_digest(digest, "row-dim", source_row_idx, row_dim.height, row_dim.hidden)
-            for source_col_idx in source_columns:
+                _update_digest(
+                    digest,
+                    "row-dim",
+                    source_row_idx,
+                    row_dim.height,
+                    row_dim.hidden,
+                    row_dim.outlineLevel,
+                    row_dim.collapsed,
+                    row_dim.thickTop,
+                    row_dim.thickBot,
+                )
+            for source_col_idx in retained_columns:
                 src_cell = ws.cell(source_row_idx, source_col_idx)
                 src_value_cell = ws_values.cell(source_row_idx, source_col_idx)
                 _update_digest(
@@ -710,19 +777,23 @@ def _build_sheet_signature(task: SyncTask) -> str:
                     src_cell.number_format,
                     src_cell.style_id,
                 )
+            if task.column_selection_mode == "exclude":
+                _update_digest(digest, "row-presence", source_row_idx)
 
         if task.copy_style:
-            source_column_set = set(source_columns)
+            source_column_set = set(retained_columns)
             for merged_range in ws.merged_cells.ranges:
                 min_col, min_row, max_col, max_row = merged_range.bounds
                 if any(col not in source_column_set for col in range(min_col, max_col + 1)):
                     continue
                 row_set = set(range(min_row, max_row + 1))
-                if task.include_header and header_row in row_set:
-                    pass
-                elif not row_set.issubset(exported_row_set):
+                if not row_set.issubset(exported_row_set):
                     continue
                 _update_digest(digest, "merge", str(merged_range))
+
+        freeze_panes = _map_freeze_panes(ws.freeze_panes, {col: col for col in retained_columns}, {row: row for row in source_rows})
+        _update_digest(digest, "freeze", freeze_panes)
+        _update_digest(digest, "filter", _map_range_ref(getattr(ws.auto_filter, "ref", None), {col: col for col in retained_columns}, {row: row for row in source_rows}))
 
         return digest.hexdigest()
     finally:
@@ -748,6 +819,21 @@ def _clear_target_area(ws, start_row: int, start_col: int, rows_to_clear: int, c
     for row in ws.iter_rows(min_row=start_row, max_row=end_row, min_col=start_col, max_col=end_col):
         for cell in row:
             cell.value = None
+            cell.comment = None
+            cell._hyperlink = None
+    for row_idx in range(start_row, end_row + 1):
+        row_dim = ws.row_dimensions[row_idx]
+        row_dim.height = None
+        row_dim.hidden = False
+        row_dim.outlineLevel = 0
+        row_dim.collapsed = False
+    for col_idx in range(start_col, end_col + 1):
+        col_dim = ws.column_dimensions[get_column_letter(col_idx)]
+        col_dim.width = None
+        col_dim.hidden = False
+        col_dim.bestFit = False
+        col_dim.outlineLevel = 0
+        col_dim.collapsed = False
 
 
 def _prepare_target_workbook(task: SyncTask, rows_written: int, cols_written: int):

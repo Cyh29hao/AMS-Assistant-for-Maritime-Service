@@ -5,6 +5,8 @@ import json
 import sys
 from pathlib import Path
 
+import openpyxl
+
 from desktop_app.app import main as gui_main
 from desktop_app.excel_sync_engine import DEFAULT_SETTINGS as DEFAULT_SYNC_SETTINGS
 from desktop_app.excel_sync_engine import SyncTask, create_demo_workbooks, sync_task
@@ -20,7 +22,7 @@ def run_self_test(output_path: Path, workspace_root: Path | None = None) -> int:
     example_workbook = next(example_dir.glob("domestic-forwarder-*.xlsx"))
     req1_result = ops.contract_generate_from_file(example_workbook)
 
-    sync_demo = create_demo_workbooks(ops.sync_examples_dir)
+    sync_demo = create_demo_workbooks(ops.sync_examples_dir, force=True)
     sync_result = sync_task(
         SyncTask(
             name="自检任务",
@@ -28,12 +30,22 @@ def run_self_test(output_path: Path, workspace_root: Path | None = None) -> int:
             source_sheet="Orders",
             target_file=str(sync_demo["target_path"]),
             target_sheet="Export",
-            columns_by_header=["订单号", "船名", "状态"],
+            column_selection_mode="exclude",
+            columns_by_header=["备注"],
             header_row=1,
             data_start_row=2,
         ),
         DEFAULT_SYNC_SETTINGS,
     )
+
+    sync_workbook = openpyxl.load_workbook(sync_result.path)
+    try:
+        sync_ws = sync_workbook["Export"]
+        hidden_row_preserved = sync_ws.row_dimensions[3].hidden
+        blank_row_preserved = sync_ws.max_row >= 5
+        excluded_column_removed = sync_ws.max_column == 5
+    finally:
+        sync_workbook.close()
 
     report = {
         "success": True,
@@ -50,6 +62,9 @@ def run_self_test(output_path: Path, workspace_root: Path | None = None) -> int:
         "sync_demo_source_path": str(sync_demo["source_path"]),
         "sync_demo_target_path": str(sync_demo["target_path"]),
         "sync_target_exists": sync_result.path.exists(),
+        "sync_hidden_row_preserved": hidden_row_preserved,
+        "sync_blank_row_preserved": blank_row_preserved,
+        "sync_excluded_column_removed": excluded_column_removed,
         "help_index_exists": (help_assets_dir() / "index.html").exists(),
         "guide_exists": (release_assets_dir() / "应用使用说明.html").exists(),
     }

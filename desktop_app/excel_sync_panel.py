@@ -22,6 +22,12 @@ TARGET_MODE_LABELS = {
 }
 TARGET_MODE_VALUES = {value: label for label, value in TARGET_MODE_LABELS.items()}
 
+COLUMN_MODE_LABELS = {
+    "只保留勾选列（兼容旧任务）": "include",
+    "复制整表，仅排除勾选列（推荐）": "exclude",
+}
+COLUMN_MODE_VALUES = {value: label for label, value in COLUMN_MODE_LABELS.items()}
+
 
 class ExcelSyncPanel:
     def __init__(
@@ -61,6 +67,7 @@ class ExcelSyncPanel:
         self.target_sheet_var = tk.StringVar()
         self.target_mode_var = tk.StringVar(value="覆盖目标表")
         self.target_start_cell_var = tk.StringVar(value="A1")
+        self.column_mode_var = tk.StringVar(value="复制整表，仅排除勾选列（推荐）")
         self.header_row_var = tk.StringVar(value="1")
         self.data_start_row_var = tk.StringVar(value="2")
         self.formula_var = tk.StringVar(value="values")
@@ -70,7 +77,7 @@ class ExcelSyncPanel:
         intro.pack(fill=X, pady=(0, 12))
         ttk.Label(
             intro,
-            text="把一个 Excel 的指定工作表、指定列，自动同步到另一个 Excel。适合做日报同步、结果汇总、系统间搬运和格式化导出。",
+            text="把一个 Excel 的指定工作表同步到另一个 Excel。现在默认更适合“几乎整张表复制过去，只排除少数几列”的场景，同时会尽量保留隐藏行、空行和表格结构。",
             bootstyle="secondary",
             wraplength=980,
         ).pack(anchor="w")
@@ -204,20 +211,31 @@ class ExcelSyncPanel:
         self.header_row_entry.grid(row=0, column=1, sticky="w", pady=2)
         self.header_row_entry.bind("<FocusOut>", lambda _e: self._load_headers())
         self.header_row_entry.bind("<Return>", lambda _e: self._load_headers())
-        ttk.Label(advanced, text="数据起始行").grid(row=1, column=0, sticky="w", pady=2)
+        ttk.Label(advanced, text="列处理方式").grid(row=1, column=0, sticky="w", pady=2)
+        self.column_mode_combo = ttk.Combobox(
+            advanced,
+            textvariable=self.column_mode_var,
+            state="readonly",
+            values=list(COLUMN_MODE_LABELS.keys()),
+            width=28,
+        )
+        self.column_mode_combo.grid(row=1, column=1, sticky="w", pady=2)
+        self.column_mode_combo.bind("<<ComboboxSelected>>", self._on_column_mode_change)
+        ttk.Label(advanced, text="数据起始行").grid(row=2, column=0, sticky="w", pady=2)
         self.data_start_row_entry = ttk.Entry(advanced, textvariable=self.data_start_row_var, width=10)
-        self.data_start_row_entry.grid(row=1, column=1, sticky="w", pady=2)
-        ttk.Label(advanced, text="公式输出").grid(row=2, column=0, sticky="w", pady=2)
+        self.data_start_row_entry.grid(row=2, column=1, sticky="w", pady=2)
+        ttk.Label(advanced, text="公式输出").grid(row=3, column=0, sticky="w", pady=2)
         ttk.Combobox(
             advanced,
             textvariable=self.formula_var,
             state="readonly",
             values=["values", "formulas"],
             width=12,
-        ).grid(row=2, column=1, sticky="w", pady=2)
+        ).grid(row=3, column=1, sticky="w", pady=2)
         row += 1
 
-        ttk.Label(right, text="要同步的列").grid(row=row, column=0, sticky="nw", pady=4)
+        self.columns_label = ttk.Label(right, text="要排除的列")
+        self.columns_label.grid(row=row, column=0, sticky="nw", pady=4)
         columns_frame = ttk.Frame(right)
         columns_frame.grid(row=row, column=1, sticky="nsew")
         right.rowconfigure(row, weight=1)
@@ -263,6 +281,7 @@ class ExcelSyncPanel:
         self._show_columns_placeholder("先选择源文件和工作表，然后在这里勾选需要同步的列。")
         self._update_source_mode_ui()
         self._update_target_mode_ui()
+        self._update_column_mode_ui()
 
     def shutdown(self) -> None:
         self.service.stop()
@@ -329,12 +348,19 @@ class ExcelSyncPanel:
             self.target_start_label.grid_remove()
             self.target_start_entry.grid_remove()
 
+    def _update_column_mode_ui(self) -> None:
+        exclude_mode = COLUMN_MODE_LABELS.get(self.column_mode_var.get(), "exclude") == "exclude"
+        self.columns_label.configure(text="要排除的列" if exclude_mode else "要保留的列")
+
     def _on_source_mode_change(self, _event=None):
         self._update_source_mode_ui()
         self._load_headers()
 
     def _on_target_mode_change(self, _event=None):
         self._update_target_mode_ui()
+
+    def _on_column_mode_change(self, _event=None):
+        self._update_column_mode_ui()
 
     def _pick_source(self) -> None:
         path = filedialog.askopenfilename(
@@ -415,7 +441,8 @@ class ExcelSyncPanel:
         source_file = self.source_file_var.get().strip()
         source_sheet = self.source_sheet_var.get().strip()
         if not source_file or not source_sheet:
-            self._show_columns_placeholder("先选择源文件和工作表。")
+            mode_text = "排除" if COLUMN_MODE_LABELS.get(self.column_mode_var.get(), "exclude") == "exclude" else "保留"
+            self._show_columns_placeholder(f"先选择源文件和工作表，然后勾选要{mode_text}的列。")
             return
         try:
             headers = list_headers(
@@ -500,6 +527,7 @@ class ExcelSyncPanel:
             self.target_sheet_var.set("")
             self.target_mode_var.set("覆盖目标表")
             self.target_start_cell_var.set("A1")
+            self.column_mode_var.set("复制整表，仅排除勾选列（推荐）")
             self.header_row_var.set("1")
             self.data_start_row_var.set("2")
             self.formula_var.set("values")
@@ -507,7 +535,8 @@ class ExcelSyncPanel:
             self.target_sheet_combo["values"] = []
             self._update_source_mode_ui()
             self._update_target_mode_ui()
-            self._show_columns_placeholder("先选择源文件和工作表，然后在这里勾选需要同步的列。")
+            self._update_column_mode_ui()
+            self._show_columns_placeholder("先选择源文件和工作表，然后在这里勾选要排除的列。")
             return
 
         self.name_var.set(task.name)
@@ -520,11 +549,13 @@ class ExcelSyncPanel:
         self.target_sheet_var.set(task.target_sheet)
         self.target_mode_var.set(TARGET_MODE_VALUES.get(task.target_mode, "覆盖目标表"))
         self.target_start_cell_var.set(task.target_start_cell or "A1")
+        self.column_mode_var.set(COLUMN_MODE_VALUES.get(task.column_selection_mode, "只保留勾选列（兼容旧任务）"))
         self.header_row_var.set(str(task.header_row))
         self.data_start_row_var.set(str(task.data_start_row))
         self.formula_var.set(task.formula_handling)
         self._update_source_mode_ui()
         self._update_target_mode_ui()
+        self._update_column_mode_ui()
         try:
             sheets = list_sheets(task.source_file) if task.source_file else []
         except Exception:
@@ -550,6 +581,7 @@ class ExcelSyncPanel:
             target_sheet=self.target_sheet_var.get().strip() or "Export",
             target_mode=TARGET_MODE_LABELS.get(self.target_mode_var.get(), "replace_sheet"),
             target_start_cell=self.target_start_cell_var.get().strip() or "A1",
+            column_selection_mode=COLUMN_MODE_LABELS.get(self.column_mode_var.get(), "exclude"),
             columns_by_header=headers,
             header_row=int(self.header_row_var.get() or "1"),
             data_start_row=int(self.data_start_row_var.get() or "2"),
@@ -598,6 +630,7 @@ class ExcelSyncPanel:
             target_sheet=source_task.target_sheet,
             target_mode=source_task.target_mode,
             target_start_cell=source_task.target_start_cell,
+            column_selection_mode=source_task.column_selection_mode,
             columns_by_header=list(source_task.columns_by_header),
             header_row=source_task.header_row,
             data_start_row=source_task.data_start_row,

@@ -223,7 +223,7 @@ class AmsDesktopApp:
             quick_row,
             3,
             SYNC_FEATURE_NAME,
-            "配置同步任务，监控源表并自动写入目标表。",
+            "复制源表到目标表，只排除少数不保留列。",
             "打开示例文件",
             lambda: self.open_path(self.ops.sync_examples_dir),
             "功能说明",

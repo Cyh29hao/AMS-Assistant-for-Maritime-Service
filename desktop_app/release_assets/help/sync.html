@@ -10,8 +10,8 @@
   <div class="wrap">
     <section class="hero">
       <div class="pill">表格自动同步</div>
-      <h1>监控源表，把指定字段自动写进目标表</h1>
-      <p>这个功能来自你之前的 Excel 同步工具，但现在被收进了 AMS Assistant 里。它适合做日报抽取、结果汇总、系统间搬运和“源表一改，目标表自动跟着改”的场景。</p>
+      <h1>监控源表，把内容几乎原样复制到目标表</h1>
+      <p>这个功能来自你之前的 Excel 同步工具，但现在被收进了 AMS Assistant 里。当前推荐的用法是：复制整张表，只排除你不想保留的少数几列，同时尽量保留隐藏行、空行、行高、列宽和原有结构。</p>
       <div class="nav">
         <a href="./index.html">帮助首页</a>
         <a href="./contract.html">合同生成中心</a>
@@ -39,12 +39,12 @@
           <div class="mock-content">
             <div class="mock-card">
               <strong>编辑要点</strong>
-              <p>选择源 Excel、源工作表、要同步的列，再设置目标 Excel 和目标工作表。</p>
+              <p>选择源 Excel、源工作表、列处理方式，再勾选要排除或保留的列，最后设置目标 Excel 和目标工作表。</p>
             </div>
             <div class="mock-row">
               <div class="mock-box highlight">源 Excel</div>
               <div class="mock-box highlight">源工作表</div>
-              <div class="mock-box highlight">勾选字段</div>
+              <div class="mock-box highlight">列处理方式</div>
               <div class="mock-box good">目标 Excel</div>
             </div>
           </div>
@@ -61,11 +61,11 @@
         </div>
         <div class="step">
           <strong>第 2 步：新建任务</strong>
-          填任务名称，选择源 Excel，读取工作表，勾选要同步的列，再选择目标 Excel。
+          填任务名称，选择源 Excel，读取工作表。新任务推荐把“列处理方式”设成“复制整表，仅排除勾选列（推荐）”，再勾选你不想保留的列。
         </div>
         <div class="step">
           <strong>第 3 步：保存并立即同步</strong>
-          第一次建议用“保存并立即同步”，先确认规则对不对，再交给后台监控。
+          第一次建议用“保存并立即同步”，先确认隐藏行、空行、样式和目标表结构是不是都符合预期，再交给后台监控。
         </div>
         <div class="step">
           <strong>第 4 步：让它自动监控</strong>
@@ -97,7 +97,8 @@
       <h2>这个功能的核心价值</h2>
       <ul>
         <li>不是一次性导出，而是可以持续监控源文件。</li>
-        <li>能只同步你勾选的字段，不必整张表硬拷贝。</li>
+        <li>现在可以走“整张表复制过去，只排除几列”的工作方式，更贴近日常 Excel 交接。</li>
+        <li>隐藏行、空行、行高、列宽和大部分结构会跟着一起复制。</li>
         <li>Excel / WPS 占用文件时会自动重试，而不是立刻放弃。</li>
       </ul>
     </section>
