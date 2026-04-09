@@ -1,0 +1,57 @@
+AMS Assistant Proprietary Evaluation License
+
+Copyright (c) 2026 Cyh29hao
+All rights reserved.
+
+1. Scope
+
+This repository, its source code, documents, templates, examples, releases, and related materials
+are provided for review, evaluation, learning, internal testing, and implementation reference only.
+
+2. No Open Source Grant
+
+This repository is not released under an OSI-approved open source license.
+No right is granted to copy, modify, redistribute, sublicense, sell, host as a service,
+or use the repository or its releases for commercial production use unless prior written permission
+is obtained from the copyright holder.
+
+3. Internal and Evaluation Use
+
+You may clone, inspect, run, and evaluate the repository and its releases for your own internal review,
+technical assessment, proof-of-concept work, or implementation planning, provided that:
+
+- you keep this license text with the repository or release package;
+- you do not remove attribution notices;
+- you do not represent the repository as your own product;
+- you do not redistribute repository contents to third parties except for internal evaluation within your organization.
+
+4. Templates, Samples, and Third-Party Materials
+
+Some templates, samples, screenshots, clauses, layouts, or business examples may originate from
+project materials, internal implementation samples, or third-party source materials.
+Those materials are not separately licensed by this file.
+You are responsible for confirming that you have the necessary rights and approvals before reusing,
+redistributing, or deploying such materials.
+
+5. Accounts, Data, and Automation Targets
+
+This repository does not grant any right to access, automate, scrape, query, or operate any external website,
+service, account, or data source without explicit authorization from the relevant owner.
+You must use only accounts, datasets, and systems that you are authorized to access and automate.
+
+6. No Warranty
+
+THE REPOSITORY AND ALL RELATED MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE,
+NON-INFRINGEMENT, ACCURACY, OR SUITABILITY FOR PRODUCTION USE.
+
+7. Liability Limitation
+
+TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE COPYRIGHT HOLDER SHALL NOT BE LIABLE FOR ANY CLAIM,
+DAMAGES, LOSSES, OR OTHER LIABILITY ARISING FROM OR RELATED TO THE USE OF THIS REPOSITORY,
+ITS RELEASES, OR ANY AUTOMATION BUILT FROM IT.
+
+8. Separate Permission
+
+If you want to use this repository or its releases beyond internal evaluation or implementation reference,
+you should obtain separate written permission from the copyright holder.
