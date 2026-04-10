@@ -89,6 +89,8 @@ def build_pyinstaller_bundle() -> Path:
         f"{ROOT / 'maritime-service'};maritime-service",
         "--add-data",
         f"{ROOT / 'desktop_app' / 'release_assets'};desktop_app/release_assets",
+        "--add-data",
+        f"{ROOT / 'private_pack_source.example'};private_pack_source.example",
         "--collect-all",
         "ttkbootstrap",
         "--collect-all",
@@ -99,6 +101,8 @@ def build_pyinstaller_bundle() -> Path:
         "playwright",
         "--collect-all",
         "requests",
+        "--collect-all",
+        "cryptography",
         str(ROOT / "launch_ams_desktop_app.py"),
     ]
     for module_name in EXCLUDED_MODULES:
@@ -138,6 +142,8 @@ def build_pyinstaller_updater() -> Path:
         f"{ROOT / 'maritime-service'};maritime-service",
         "--add-data",
         f"{ROOT / 'desktop_app' / 'release_assets'};desktop_app/release_assets",
+        "--add-data",
+        f"{ROOT / 'private_pack_source.example'};private_pack_source.example",
         "--collect-all",
         "ttkbootstrap",
         "--collect-all",
@@ -148,6 +154,8 @@ def build_pyinstaller_updater() -> Path:
         "playwright",
         "--collect-all",
         "requests",
+        "--collect-all",
+        "cryptography",
         str(ROOT / "launch_ams_update_helper.py"),
     ]
     for module_name in EXCLUDED_MODULES:

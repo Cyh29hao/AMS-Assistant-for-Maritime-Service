@@ -21,6 +21,13 @@ from desktop_app.excel_sync_engine import (
     SyncService,
     create_demo_workbooks,
 )
+from desktop_app.private_pack import (
+    FEATURE_PATHS as PRIVATE_PACK_FEATURE_PATHS,
+    build_private_pack,
+    detect_private_pack_features,
+    load_installed_private_pack,
+    unpack_private_pack,
+)
 
 
 APP_NAME = "AMS Assistant"
@@ -49,6 +56,10 @@ UPDATE_TOP_LEVEL_FILES = [
 ENV_SETTINGS_DIR = "AMS_ASSISTANT_SETTINGS_DIR"
 ENV_DEFAULT_WORKSPACE = "AMS_ASSISTANT_DEFAULT_WORKSPACE"
 ENV_REQ2_BROWSER = "AMS_REQ2_BROWSER"
+ENV_PRIVATE_PACK_ROOT = "AMS_PRIVATE_PACK_ROOT"
+ENV_CONTRACT_TEMPLATE_DIR = "AMS_CONTRACT_TEMPLATE_DIR"
+ENV_CONTRACT_REGISTRY_PATH = "AMS_CONTRACT_REGISTRY_PATH"
+ENV_CLEARANCE_SITE_CONFIG_PATH = "AMS_CLEARANCE_SITE_CONFIG_PATH"
 
 CONTRACT_FEATURE_NAME = "合同生成中心"
 CLEARANCE_FEATURE_NAME = "通关查询中心"
@@ -112,8 +123,24 @@ def help_assets_dir() -> Path:
     return release_assets_dir() / "help"
 
 
+def private_pack_example_source_dir() -> Path:
+    return runtime_base_dir() / "private_pack_source.example"
+
+
 def scripts_dir() -> Path:
     return skill_root() / "scripts"
+
+
+def public_contract_templates_dir() -> Path:
+    return skill_root() / "assets" / "contract_templates"
+
+
+def public_contract_registry_path() -> Path:
+    return scripts_dir() / "contract_template_registry.json"
+
+
+def public_clearance_site_config_path() -> Path:
+    return scripts_dir() / "clearance_site_config.json"
 
 
 def ensure_scripts_dir_on_path() -> None:
@@ -301,6 +328,58 @@ class AmsOperations:
     def sync_template_path(self) -> Path:
         return self.sync_settings_dir / "sync-tasks.template.json"
 
+    @property
+    def private_pack_root(self) -> Path:
+        return settings_root() / "private-pack"
+
+    @property
+    def private_pack_unpack_dir(self) -> Path:
+        return self.private_pack_root / "unpacked"
+
+    @property
+    def private_pack_builder_dir(self) -> Path:
+        return self.workspace_root / "私密业务包制作"
+
+    @property
+    def private_pack_builder_source_dir(self) -> Path:
+        return self.private_pack_builder_dir / "source"
+
+    @property
+    def private_pack_builder_output_dir(self) -> Path:
+        return self.private_pack_builder_dir / "output"
+
+    @property
+    def private_pack_example_source_dir(self) -> Path:
+        return private_pack_example_source_dir()
+
+    @property
+    def private_pack_encrypted_dir(self) -> Path:
+        return self.private_pack_root / "encrypted"
+
+    @property
+    def private_pack_status_path(self) -> Path:
+        return self.private_pack_root / "private-pack-status.json"
+
+    @property
+    def private_pack_manifest_path(self) -> Path:
+        return self.private_pack_unpack_dir / "private-pack.json"
+
+    @property
+    def private_contract_templates_dir(self) -> Path:
+        return self.private_pack_unpack_dir / PRIVATE_PACK_FEATURE_PATHS["contract_templates"]
+
+    @property
+    def private_contract_registry_path(self) -> Path:
+        return self.private_pack_unpack_dir / PRIVATE_PACK_FEATURE_PATHS["contract_registry"]
+
+    @property
+    def private_clearance_site_config_path(self) -> Path:
+        return self.private_pack_unpack_dir / PRIVATE_PACK_FEATURE_PATHS["clearance_site_config"]
+
+    @property
+    def private_help_dir(self) -> Path:
+        return self.private_pack_unpack_dir / PRIVATE_PACK_FEATURE_PATHS["help_overrides"]
+
     def sync_paths(self) -> ExcelSyncPaths:
         return ExcelSyncPaths(
             data_path=self.sync_tasks_path,
@@ -308,14 +387,177 @@ class AmsOperations:
             template_data_path=self.sync_template_path,
         )
 
+    def private_pack_status(self) -> dict[str, Any]:
+        unpacked_root = self.private_pack_unpack_dir
+        installed = unpacked_root.exists() and self.private_pack_manifest_path.exists()
+        if not installed:
+            return {
+                "installed": False,
+                "mode_label": "公开演示模式",
+                "status_text": "还没有导入私密业务包",
+                "display_name": "",
+                "version": "",
+                "description": "当前仍可使用公开演示内容。导入私密包后，应用会优先读取本地解锁后的模板和配置。",
+                "features": [],
+                "features_text": "未覆盖任何私密资源",
+                "installed_at": "",
+                "source_pack_name": "",
+                "unpacked_root": str(unpacked_root),
+                "contract_templates_active": False,
+                "contract_registry_active": False,
+                "clearance_site_config_active": False,
+                "help_overrides_active": False,
+            }
+
+        payload = load_installed_private_pack(unpacked_root) or {}
+        summary_payload = payload.get("summary") if isinstance(payload.get("summary"), dict) else {}
+        features = detect_private_pack_features(unpacked_root)
+        display_name = str(summary_payload.get("display_name") or "").strip()
+        version = str(summary_payload.get("version") or "").strip()
+        description = str(summary_payload.get("description") or "").strip()
+        feature_labels = {
+            "contract_templates": "合同模板",
+            "contract_registry": "合同规则",
+            "clearance_site_config": "通关站点配置",
+            "help_overrides": "私密帮助页",
+        }
+        features_text = "、".join(feature_labels.get(item, item) for item in features) if features else "已解锁，但没有识别到覆盖项"
+        return {
+            "installed": True,
+            "mode_label": "已解锁完整业务模式",
+            "status_text": f"已加载私密业务包：{display_name or '未命名业务包'}",
+            "display_name": display_name,
+            "version": version,
+            "description": description,
+            "features": features,
+            "features_text": features_text,
+            "installed_at": str(payload.get("installed_at") or ""),
+            "source_pack_name": str(payload.get("source_pack_name") or ""),
+            "unpacked_root": str(unpacked_root),
+            "contract_templates_active": self.private_contract_templates_dir.exists(),
+            "contract_registry_active": self.private_contract_registry_path.exists(),
+            "clearance_site_config_active": self.private_clearance_site_config_path.exists(),
+            "help_overrides_active": self.private_help_dir.exists(),
+        }
+
+    def resolve_contract_templates_dir(self) -> Path:
+        return self.private_contract_templates_dir if self.private_contract_templates_dir.exists() else public_contract_templates_dir()
+
+    def resolve_contract_registry_path(self) -> Path:
+        return self.private_contract_registry_path if self.private_contract_registry_path.exists() else public_contract_registry_path()
+
+    def resolve_clearance_site_config_path(self) -> Path:
+        return self.private_clearance_site_config_path if self.private_clearance_site_config_path.exists() else public_clearance_site_config_path()
+
+    def resolve_help_page_path(self, key: str) -> Path:
+        filename = {
+            "index": "index.html",
+            "contract": "contract.html",
+            "clearance": "clearance.html",
+            "lineup": "lineup.html",
+            "sync": "sync.html",
+            "private": "private-pack.html",
+        }.get(key, "index.html")
+        private_target = self.private_help_dir / filename
+        if private_target.exists():
+            return private_target
+        return help_assets_dir() / filename
+
+    def install_private_pack(self, pack_path: Path | str, password: str) -> dict[str, Any]:
+        pack_path = Path(pack_path).expanduser().resolve()
+        self.private_pack_root.mkdir(parents=True, exist_ok=True)
+        self.private_pack_encrypted_dir.mkdir(parents=True, exist_ok=True)
+        stage_dir = self.private_pack_root / f"unpacked.incoming-{self._timestamp()}"
+        backup_dir = self.private_pack_root / f"unpacked.backup-{self._timestamp()}"
+        if stage_dir.exists():
+            shutil.rmtree(stage_dir)
+        try:
+            result = unpack_private_pack(pack_path, password, stage_dir)
+            if self.private_pack_unpack_dir.exists():
+                if backup_dir.exists():
+                    shutil.rmtree(backup_dir)
+                self.private_pack_unpack_dir.rename(backup_dir)
+            stage_dir.rename(self.private_pack_unpack_dir)
+            if backup_dir.exists():
+                shutil.rmtree(backup_dir)
+        except Exception:
+            if stage_dir.exists():
+                shutil.rmtree(stage_dir)
+            if backup_dir.exists() and not self.private_pack_unpack_dir.exists():
+                backup_dir.rename(self.private_pack_unpack_dir)
+            raise
+
+        cached_pack_path = self.private_pack_encrypted_dir / "last-import.amspack"
+        shutil.copy2(pack_path, cached_pack_path)
+        status_payload = result.to_dict()
+        status_payload["cached_pack_path"] = str(cached_pack_path)
+        self.private_pack_status_path.write_text(
+            json.dumps(status_payload, ensure_ascii=False, indent=2),
+            encoding="utf-8",
+        )
+        return {
+            **status_payload,
+            **self.private_pack_status(),
+        }
+
+    def clear_private_pack(self) -> dict[str, Any]:
+        removed: list[str] = []
+        for target in [self.private_pack_unpack_dir, self.private_pack_encrypted_dir]:
+            if target.exists():
+                shutil.rmtree(target)
+                removed.append(str(target))
+        if self.private_pack_status_path.exists():
+            self.private_pack_status_path.unlink()
+            removed.append(str(self.private_pack_status_path))
+        return {
+            "removed_paths": removed,
+            **self.private_pack_status(),
+        }
+
+    def build_private_pack_file(self, source_dir: Path | str, output_path: Path | str, password: str) -> dict[str, Any]:
+        summary = build_private_pack(source_dir, output_path, password)
+        return {
+            "output_path": str(Path(output_path).expanduser().resolve()),
+            "summary": summary.to_dict(),
+        }
+
+    def prepare_private_pack_example_source(self, force: bool = False) -> dict[str, Any]:
+        source = self.private_pack_example_source_dir
+        if not source.exists():
+            raise FileNotFoundError(f"示例私密包目录不存在：{source}")
+        target = self.private_pack_builder_source_dir
+        target.parent.mkdir(parents=True, exist_ok=True)
+        copied = False
+        if force and target.exists():
+            shutil.rmtree(target)
+        if not target.exists():
+            shutil.copytree(source, target)
+            copied = True
+        return {
+            "source_path": str(source),
+            "target_path": str(target),
+            "copied": copied,
+        }
+
+    def suggest_private_pack_output_path(self) -> Path:
+        self.private_pack_builder_output_dir.mkdir(parents=True, exist_ok=True)
+        filename = f"ams-private-pack-{time.strftime('%Y%m%d-%H%M%S')}.amspack"
+        return self.private_pack_builder_output_dir / filename
+
     def set_runtime_env(self) -> None:
         os.environ["AMS_DATA_ROOT"] = str(self.clearance_result_root)
         os.environ[ENV_REQ2_BROWSER] = self.config.req2_browser_preference
+        os.environ[ENV_PRIVATE_PACK_ROOT] = str(self.private_pack_unpack_dir) if self.private_pack_unpack_dir.exists() else ""
+        os.environ[ENV_CONTRACT_TEMPLATE_DIR] = str(self.resolve_contract_templates_dir())
+        os.environ[ENV_CONTRACT_REGISTRY_PATH] = str(self.resolve_contract_registry_path())
+        os.environ[ENV_CLEARANCE_SITE_CONFIG_PATH] = str(self.resolve_clearance_site_config_path())
 
     def load_contract_module(self):
+        self.set_runtime_env()
         return load_source_module("contract_workflow_runtime", scripts_dir() / "contract_workflow.py")
 
     def load_clearance_module(self):
+        self.set_runtime_env()
         return load_source_module("clearance_workflow_runtime", scripts_dir() / "clearance_workflow.py")
 
     def load_site_module(self):
@@ -359,6 +601,9 @@ class AmsOperations:
         self.sync_dir.mkdir(parents=True, exist_ok=True)
         self.sync_runtime_dir.mkdir(parents=True, exist_ok=True)
         self.ensure_sync_storage()
+        self.private_pack_root.mkdir(parents=True, exist_ok=True)
+        self.private_pack_builder_dir.mkdir(parents=True, exist_ok=True)
+        self.private_pack_builder_output_dir.mkdir(parents=True, exist_ok=True)
 
         self._write_workspace_notes()
         create_demo_workbooks(self.sync_examples_dir)

@@ -29,7 +29,9 @@ OUTPUT_ROOT = DATA_ROOT / "clearance"
 SITE_SESSION_DIR = OUTPUT_ROOT / "site_session"
 SITE_QUERY_DIR = OUTPUT_ROOT / "site_query_results"
 SITE_CHECK_DIR = OUTPUT_ROOT / "site_checks"
-CONFIG_PATH = SCRIPT_DIR / "clearance_site_config.json"
+CONFIG_PATH = Path(
+    os.environ.get("AMS_CLEARANCE_SITE_CONFIG_PATH", str(SCRIPT_DIR / "clearance_site_config.json"))
+).resolve()
 ENV_REQ2_BROWSER = "AMS_REQ2_BROWSER"
 
 

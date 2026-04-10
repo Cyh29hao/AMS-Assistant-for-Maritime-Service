@@ -15,6 +15,7 @@ import ttkbootstrap as ttk
 from ttkbootstrap.constants import BOTH, END, LEFT, RIGHT, X, Y
 
 from desktop_app.excel_sync_panel import ExcelSyncPanel
+from desktop_app.private_pack import read_private_pack_summary, validate_private_pack_tree
 from desktop_app.runtime import (
     APP_NAME,
     APP_REPO_URL,
@@ -26,7 +27,6 @@ from desktop_app.runtime import (
     AmsOperations,
     AppConfig,
     ConfigStore,
-    help_assets_dir,
     open_in_file_explorer,
     portable_install_root,
 )
@@ -275,6 +275,351 @@ class UpdatePreparationDialog:
         self.close()
 
 
+class PrivatePackImportDialog:
+    def __init__(self, parent: ttk.Window) -> None:
+        self.parent = parent
+        self.window = ttk.Toplevel(parent)
+        self.window.title("导入私密业务包")
+        self.window.geometry("620x360")
+        self.window.minsize(620, 360)
+        self.window.maxsize(760, 520)
+        self.window.transient(parent)
+        self.window.grab_set()
+        self.window.protocol("WM_DELETE_WINDOW", self.cancel)
+
+        self.path_var = ttk.StringVar()
+        self.password_var = ttk.StringVar()
+        self.show_password_var = ttk.BooleanVar(value=False)
+        self.summary_title_var = ttk.StringVar(value="还没有选择私密包")
+        self.summary_detail_var = ttk.StringVar(value="请选择一个 .amspack 文件。")
+        self.summary_features_var = ttk.StringVar(value="功能覆盖：未知")
+        self.result: tuple[str, str] | None = None
+        self.password_entry: ttk.Entry | None = None
+
+        self.build_ui()
+
+    def build_ui(self) -> None:
+        outer = ttk.Frame(self.window, padding=(20, 18, 20, 18))
+        outer.pack(fill=BOTH, expand=True)
+
+        header = ttk.Frame(outer)
+        header.pack(fill=X)
+        ttk.Label(header, text="导入私密业务包", font=("Microsoft YaHei UI", 18, "bold"), bootstyle="primary").pack(anchor="w")
+        ttk.Label(
+            header,
+            text="普通 release 继续公开分发，真实模板和配置通过私密业务包单独导入。这里主要是防路人，不是做企业级权限系统。",
+            bootstyle="secondary",
+            wraplength=560,
+            justify="left",
+        ).pack(anchor="w", pady=(8, 0))
+
+        card = ttk.Frame(outer, padding=18, bootstyle="light", borderwidth=1, relief="solid")
+        card.pack(fill=BOTH, expand=True, pady=(16, 0))
+
+        row1 = ttk.Frame(card)
+        row1.pack(fill=X)
+        ttk.Label(row1, text="私密包文件", width=12).pack(side=LEFT)
+        ttk.Entry(row1, textvariable=self.path_var).pack(side=LEFT, fill=X, expand=True, padx=(8, 8))
+        ttk.Button(row1, text="选择文件", bootstyle="secondary", command=self.choose_file).pack(side=LEFT)
+
+        row2 = ttk.Frame(card)
+        row2.pack(fill=X, pady=(14, 0))
+        ttk.Label(row2, text="解锁密码", width=12).pack(side=LEFT)
+        self.password_entry = ttk.Entry(row2, textvariable=self.password_var, show="*", width=34)
+        self.password_entry.pack(side=LEFT, padx=(8, 8))
+        ttk.Checkbutton(
+            row2,
+            text="显示密码",
+            variable=self.show_password_var,
+            bootstyle="round-toggle",
+            command=self.toggle_password_visibility,
+        ).pack(side=LEFT)
+
+        summary = ttk.Frame(card, padding=(0, 16, 0, 0))
+        summary.pack(fill=BOTH, expand=True)
+        ttk.Label(summary, text="包摘要", font=("Microsoft YaHei UI", 12, "bold")).pack(anchor="w")
+        ttk.Label(summary, textvariable=self.summary_title_var, font=("Microsoft YaHei UI", 11, "bold"), bootstyle="primary").pack(anchor="w", pady=(10, 0))
+        ttk.Label(summary, textvariable=self.summary_detail_var, bootstyle="secondary", wraplength=540, justify="left").pack(anchor="w", pady=(6, 0))
+        ttk.Label(summary, textvariable=self.summary_features_var, bootstyle="secondary", wraplength=540, justify="left").pack(anchor="w", pady=(6, 0))
+        ttk.Label(
+            summary,
+            text="导入后，应用会把解锁内容保存到本地用户目录。以后更新主程序时，这部分会尽量保留，不需要每次重配。",
+            bootstyle="secondary",
+            wraplength=540,
+            justify="left",
+        ).pack(anchor="w", pady=(12, 0))
+
+        actions = ttk.Frame(card)
+        actions.pack(fill=X, pady=(18, 0))
+        ttk.Button(actions, text="取消", bootstyle="secondary", command=self.cancel).pack(side=RIGHT, padx=4)
+        ttk.Button(actions, text="解锁并导入", bootstyle="success", command=self.confirm).pack(side=RIGHT, padx=4)
+
+    def toggle_password_visibility(self) -> None:
+        if self.password_entry is None:
+            return
+        self.password_entry.configure(show="" if self.show_password_var.get() else "*")
+
+    def choose_file(self) -> None:
+        selected = filedialog.askopenfilename(
+            title="选择 AMS 私密业务包",
+            filetypes=[("AMS 私密业务包", "*.amspack"), ("所有文件", "*.*")],
+        )
+        if not selected:
+            return
+        self.path_var.set(selected)
+        self.refresh_summary()
+
+    def refresh_summary(self) -> None:
+        pack_path = self.path_var.get().strip()
+        if not pack_path:
+            self.summary_title_var.set("还没有选择私密包")
+            self.summary_detail_var.set("请选择一个 .amspack 文件。")
+            self.summary_features_var.set("功能覆盖：未知")
+            return
+        try:
+            summary = read_private_pack_summary(pack_path)
+        except Exception as exc:
+            self.summary_title_var.set("无法读取私密包摘要")
+            self.summary_detail_var.set(str(exc))
+            self.summary_features_var.set("功能覆盖：未知")
+            return
+        self.summary_title_var.set(f"{summary.display_name or '未命名私密包'}  ·  {summary.version or '未标版本'}")
+        details = [
+            f"包标识：{summary.pack_id or 'N/A'}",
+            f"创建时间：{summary.created_at or 'N/A'}",
+        ]
+        if summary.description:
+            details.append(summary.description)
+        self.summary_detail_var.set("\n".join(details))
+        features = "、".join(summary.features) if summary.features else "未声明"
+        self.summary_features_var.set(f"功能覆盖：{features}")
+
+    def confirm(self) -> None:
+        pack_path = self.path_var.get().strip()
+        password = self.password_var.get()
+        if not pack_path:
+            messagebox.showwarning("还没选文件", "请先选择一个 .amspack 文件。", parent=self.window)
+            return
+        if not password:
+            messagebox.showwarning("还没输密码", "请输入解锁密码。", parent=self.window)
+            return
+        self.result = (pack_path, password)
+        self.close()
+
+    def cancel(self) -> None:
+        self.result = None
+        self.close()
+
+    def close(self) -> None:
+        if not self.window.winfo_exists():
+            return
+        self.window.grab_release()
+        self.window.destroy()
+
+    def show(self) -> tuple[str, str] | None:
+        self.window.wait_window()
+        return self.result
+
+
+class PrivatePackBuildDialog:
+    def __init__(self, parent: ttk.Window, default_source: str = "", default_output: str = "") -> None:
+        self.parent = parent
+        self.window = ttk.Toplevel(parent)
+        self.window.title("制作私密业务包")
+        self.window.geometry("700x480")
+        self.window.minsize(700, 480)
+        self.window.maxsize(860, 680)
+        self.window.transient(parent)
+        self.window.grab_set()
+        self.window.protocol("WM_DELETE_WINDOW", self.cancel)
+
+        self.source_var = ttk.StringVar(value=default_source)
+        self.output_var = ttk.StringVar(value=default_output)
+        self.password_var = ttk.StringVar()
+        self.confirm_password_var = ttk.StringVar()
+        self.show_password_var = ttk.BooleanVar(value=False)
+        self.summary_title_var = ttk.StringVar(value="还没有选择源目录")
+        self.summary_detail_var = ttk.StringVar(value="请选择一个包含 private-pack.json 的目录。")
+        self.summary_features_var = ttk.StringVar(value="功能覆盖：未知")
+        self.result: tuple[str, str, str] | None = None
+        self.password_entry: ttk.Entry | None = None
+        self.confirm_password_entry: ttk.Entry | None = None
+
+        self.build_ui()
+        self.refresh_summary()
+
+    def build_ui(self) -> None:
+        outer = ttk.Frame(self.window, padding=(20, 18, 20, 18))
+        outer.pack(fill=BOTH, expand=True)
+
+        header = ttk.Frame(outer)
+        header.pack(fill=X)
+        ttk.Label(header, text="制作私密业务包", font=("Microsoft YaHei UI", 18, "bold"), bootstyle="primary").pack(anchor="w")
+        ttk.Label(
+            header,
+            text="把真实模板、真实站点配置和私密帮助页打包成一个加密的 .amspack 文件，之后就可以私下发给需要的人导入使用。",
+            bootstyle="secondary",
+            wraplength=640,
+            justify="left",
+        ).pack(anchor="w", pady=(8, 0))
+
+        card = ttk.Frame(outer, padding=18, bootstyle="light", borderwidth=1, relief="solid")
+        card.pack(fill=BOTH, expand=True, pady=(16, 0))
+
+        row1 = ttk.Frame(card)
+        row1.pack(fill=X)
+        ttk.Label(row1, text="源目录", width=12).pack(side=LEFT)
+        ttk.Entry(row1, textvariable=self.source_var).pack(side=LEFT, fill=X, expand=True, padx=(8, 8))
+        ttk.Button(row1, text="选择目录", bootstyle="secondary", command=self.choose_source_dir).pack(side=LEFT)
+
+        row2 = ttk.Frame(card)
+        row2.pack(fill=X, pady=(12, 0))
+        ttk.Label(row2, text="输出文件", width=12).pack(side=LEFT)
+        ttk.Entry(row2, textvariable=self.output_var).pack(side=LEFT, fill=X, expand=True, padx=(8, 8))
+        ttk.Button(row2, text="另存为", bootstyle="secondary", command=self.choose_output_file).pack(side=LEFT)
+
+        row3 = ttk.Frame(card)
+        row3.pack(fill=X, pady=(12, 0))
+        ttk.Label(row3, text="加密密码", width=12).pack(side=LEFT)
+        self.password_entry = ttk.Entry(row3, textvariable=self.password_var, show="*", width=26)
+        self.password_entry.pack(side=LEFT, padx=(8, 8))
+        ttk.Label(row3, text="确认密码").pack(side=LEFT, padx=(12, 0))
+        self.confirm_password_entry = ttk.Entry(row3, textvariable=self.confirm_password_var, show="*", width=26)
+        self.confirm_password_entry.pack(side=LEFT, padx=(8, 8))
+        ttk.Checkbutton(
+            row3,
+            text="显示密码",
+            variable=self.show_password_var,
+            bootstyle="round-toggle",
+            command=self.toggle_password_visibility,
+        ).pack(side=LEFT)
+
+        summary = ttk.Frame(card, padding=(0, 16, 0, 0))
+        summary.pack(fill=BOTH, expand=True)
+        ttk.Label(summary, text="目录摘要", font=("Microsoft YaHei UI", 12, "bold")).pack(anchor="w")
+        ttk.Label(summary, textvariable=self.summary_title_var, font=("Microsoft YaHei UI", 11, "bold"), bootstyle="primary").pack(anchor="w", pady=(10, 0))
+        ttk.Label(summary, textvariable=self.summary_detail_var, bootstyle="secondary", wraplength=620, justify="left").pack(anchor="w", pady=(6, 0))
+        ttk.Label(summary, textvariable=self.summary_features_var, bootstyle="secondary", wraplength=620, justify="left").pack(anchor="w", pady=(6, 0))
+        ttk.Label(
+            summary,
+            text="建议先把示例目录复制到工作区，再在那份副本上替换成你自己的真实模板和配置。这样更不容易改坏原始示例。",
+            bootstyle="secondary",
+            wraplength=620,
+            justify="left",
+        ).pack(anchor="w", pady=(12, 0))
+
+        actions = ttk.Frame(card)
+        actions.pack(fill=X, pady=(18, 0))
+        ttk.Button(actions, text="刷新摘要", bootstyle="secondary", command=self.refresh_summary).pack(side=LEFT, padx=4)
+        ttk.Button(actions, text="取消", bootstyle="secondary", command=self.cancel).pack(side=RIGHT, padx=4)
+        ttk.Button(actions, text="开始制作", bootstyle="success", command=self.confirm).pack(side=RIGHT, padx=4)
+
+    def toggle_password_visibility(self) -> None:
+        show_value = "" if self.show_password_var.get() else "*"
+        if self.password_entry is not None:
+            self.password_entry.configure(show=show_value)
+        if self.confirm_password_entry is not None:
+            self.confirm_password_entry.configure(show=show_value)
+
+    def choose_source_dir(self) -> None:
+        initial = self.source_var.get().strip() or str(Path.home())
+        selected = filedialog.askdirectory(title="选择私密包源目录", initialdir=initial)
+        if not selected:
+            return
+        self.source_var.set(selected)
+        self.refresh_summary()
+
+    def choose_output_file(self) -> None:
+        current = self.output_var.get().strip()
+        initialdir = str(Path(current).parent) if current else str(Path.home())
+        initialfile = Path(current).name if current else "ams-private-pack.amspack"
+        selected = filedialog.asksaveasfilename(
+            title="保存私密业务包",
+            defaultextension=".amspack",
+            filetypes=[("AMS 私密业务包", "*.amspack"), ("所有文件", "*.*")],
+            initialdir=initialdir,
+            initialfile=initialfile,
+        )
+        if not selected:
+            return
+        self.output_var.set(selected)
+
+    def refresh_summary(self) -> None:
+        source_dir = self.source_var.get().strip()
+        if not source_dir:
+            self.summary_title_var.set("还没有选择源目录")
+            self.summary_detail_var.set("请选择一个包含 private-pack.json 的目录。")
+            self.summary_features_var.set("功能覆盖：未知")
+            return
+        try:
+            validation = validate_private_pack_tree(Path(source_dir))
+        except Exception as exc:
+            self.summary_title_var.set("当前目录还不能直接打包")
+            self.summary_detail_var.set(str(exc))
+            self.summary_features_var.set("功能覆盖：未知")
+            return
+        manifest = validation["manifest"]
+        features = validation["features"]
+        feature_labels = {
+            "contract_templates": "合同模板",
+            "contract_registry": "合同规则",
+            "clearance_site_config": "通关站点配置",
+            "help_overrides": "私密帮助页",
+        }
+        self.summary_title_var.set(f"{manifest.get('display_name') or '未命名私密包'}  ·  {manifest.get('version') or '未标版本'}")
+        details = [
+            f"目录：{Path(source_dir).resolve()}",
+            f"包标识：{manifest.get('pack_id') or 'N/A'}",
+        ]
+        if manifest.get("description"):
+            details.append(str(manifest["description"]))
+        self.summary_detail_var.set("\n".join(details))
+        self.summary_features_var.set(
+            "功能覆盖：" + ("、".join(feature_labels.get(item, item) for item in features) if features else "未识别")
+        )
+
+    def confirm(self) -> None:
+        source_dir = self.source_var.get().strip()
+        output_path = self.output_var.get().strip()
+        password = self.password_var.get()
+        confirm_password = self.confirm_password_var.get()
+        if not source_dir:
+            messagebox.showwarning("还没选目录", "请先选择私密包源目录。", parent=self.window)
+            return
+        if not output_path:
+            messagebox.showwarning("还没选输出位置", "请先选择生成的 .amspack 保存位置。", parent=self.window)
+            return
+        if not password:
+            messagebox.showwarning("还没设密码", "请先输入加密密码。", parent=self.window)
+            return
+        if password != confirm_password:
+            messagebox.showwarning("两次密码不一致", "请确认两次输入的密码完全一致。", parent=self.window)
+            return
+        try:
+            validate_private_pack_tree(Path(source_dir))
+        except Exception as exc:
+            messagebox.showerror("源目录不可用", str(exc), parent=self.window)
+            return
+        if not output_path.lower().endswith(".amspack"):
+            output_path += ".amspack"
+        self.result = (source_dir, output_path, password)
+        self.close()
+
+    def cancel(self) -> None:
+        self.result = None
+        self.close()
+
+    def close(self) -> None:
+        if not self.window.winfo_exists():
+            return
+        self.window.grab_release()
+        self.window.destroy()
+
+    def show(self) -> tuple[str, str, str] | None:
+        self.window.wait_window()
+        return self.result
+
+
 class AmsDesktopApp:
     def __init__(self) -> None:
         self.config_store = ConfigStore()
@@ -304,6 +649,14 @@ class AmsDesktopApp:
         self.clearance_session_hint_var = ttk.StringVar(value="尚未检查网站登录状态")
         self.workspace_var = ttk.StringVar(value=str(self.ops.workspace_root))
         self.settings_path_var = ttk.StringVar(value=str(self.config_store.config_path))
+        self.private_pack_mode_var = ttk.StringVar(value="公开演示模式")
+        self.private_pack_name_var = ttk.StringVar(value="还没有导入私密业务包")
+        self.private_pack_features_var = ttk.StringVar(value="功能覆盖：未启用")
+        self.private_pack_root_var = ttk.StringVar(value=str(self.ops.private_pack_root))
+        self.private_pack_example_var = ttk.StringVar(value=str(self.ops.private_pack_example_source_dir))
+        self.private_pack_builder_var = ttk.StringVar(value=str(self.ops.private_pack_builder_dir))
+        self.contract_resource_var = ttk.StringVar(value="当前模板来源：公开演示资源")
+        self.clearance_resource_var = ttk.StringVar(value="当前站点配置来源：公开演示资源")
         self.theme_var = ttk.StringVar(value=self.config.theme_name)
         self.auto_open_var = ttk.BooleanVar(value=self.config.auto_open_results)
         self.auto_update_check_var = ttk.BooleanVar(value=self.config.check_updates_on_launch)
@@ -320,6 +673,7 @@ class AmsDesktopApp:
         self.build_ui()
         self.refresh_paths()
         self.refresh_clearance_session_hint()
+        self.refresh_private_pack_status()
         self.window.after(180, self.process_task_queue)
 
         if self.config.check_updates_on_launch:
@@ -463,12 +817,16 @@ class AmsDesktopApp:
         ttk.Button(hero_buttons, text=CONTRACT_FEATURE_NAME, bootstyle="light", command=lambda: self.select_tab(self.contract_tab)).pack(side=LEFT, padx=4)
         ttk.Button(hero_buttons, text=CLEARANCE_FEATURE_NAME, bootstyle="light", command=lambda: self.select_tab(self.clearance_tab)).pack(side=LEFT, padx=4)
         ttk.Button(hero_buttons, text=SYNC_FEATURE_NAME, bootstyle="light", command=lambda: self.select_tab(self.sync_tab)).pack(side=LEFT, padx=4)
+        ttk.Button(hero_buttons, text="管理私密包", bootstyle="warning", command=lambda: self.select_tab(self.settings_tab)).pack(side=LEFT, padx=4)
         ttk.Button(hero_buttons, text="打开帮助中心", bootstyle="info", command=self.open_help_center).pack(side=LEFT, padx=4)
 
         summary = self.make_surface(container, padding=20, bootstyle="light")
         summary.grid(row=0, column=1, sticky="nsew", pady=(0, 12))
         ttk.Label(summary, text="当前环境", font=("Microsoft YaHei UI", 15, "bold")).pack(anchor="w")
         ttk.Label(summary, textvariable=self.last_update_var, bootstyle="primary", font=("Microsoft YaHei UI", 11, "bold")).pack(anchor="w", pady=(10, 0))
+        self.make_path_block(summary, "内容模式", textvariable=self.private_pack_mode_var, bootstyle="primary", wraplength=360).pack(fill=X, pady=(12, 0))
+        self.make_path_block(summary, "私密业务包", textvariable=self.private_pack_name_var, bootstyle="secondary", wraplength=360).pack(fill=X, pady=(10, 0))
+        self.make_path_block(summary, "私密覆盖内容", textvariable=self.private_pack_features_var, bootstyle="secondary", wraplength=360).pack(fill=X, pady=(10, 0))
         self.make_path_block(summary, "当前工作区", textvariable=self.workspace_var, bootstyle="secondary", wraplength=360).pack(fill=X, pady=(12, 0))
         self.make_path_block(summary, "设置文件", textvariable=self.settings_path_var, bootstyle="secondary", wraplength=360).pack(fill=X, pady=(10, 0))
         self.make_path_block(summary, "网站登录态", textvariable=self.clearance_session_hint_var, bootstyle="secondary", wraplength=360).pack(fill=X, pady=(10, 0))
@@ -569,6 +927,7 @@ class AmsDesktopApp:
         ).pack(fill=X, pady=(14, 0))
         self.make_path_block(left, "当前输入文件", textvariable=self.contract_input_var, bootstyle="inverse-success", wraplength=720).pack(fill=X, pady=(14, 0))
         self.make_path_block(left, "当前结果目录", textvariable=self.contract_result_var, bootstyle="inverse-success", wraplength=720).pack(fill=X, pady=(10, 0))
+        self.make_path_block(left, "当前模板来源", textvariable=self.contract_resource_var, bootstyle="inverse-success", wraplength=720).pack(fill=X, pady=(10, 0))
 
         row1 = ttk.Frame(left)
         row1.pack(fill=X, pady=(14, 0))
@@ -591,6 +950,7 @@ class AmsDesktopApp:
         ttk.Label(tips, text="使用建议", font=("Microsoft YaHei UI", 15, "bold")).pack(anchor="w")
         ttk.Label(tips, text="这块最适合“固定格式、重复生成”的工作。", bootstyle="secondary", wraplength=360).pack(anchor="w", pady=(6, 0))
         self.make_pill(tips, "尽量先用固定输入文件", "success").pack(anchor="w", pady=(12, 0))
+        self.make_path_block(tips, "资源状态", textvariable=self.contract_resource_var, bootstyle="secondary", wraplength=360).pack(fill=X, pady=(12, 0))
         ttk.Label(tips, text="如果 Word 没生成出来，先检查 Excel / Word / WPS 是否还开着。", bootstyle="secondary", wraplength=360).pack(anchor="w", pady=(10, 0))
         ttk.Button(tips, text="打开功能说明", bootstyle="info", command=lambda: self.open_help_page("contract")).pack(anchor="w", pady=(14, 0))
 
@@ -619,12 +979,14 @@ class AmsDesktopApp:
         ).pack(anchor="w")
         self.make_path_block(intro, "当前输入文件", textvariable=self.clearance_input_var, bootstyle="inverse-info", wraplength=980).pack(fill=X, pady=(14, 0))
         self.make_path_block(intro, "当前结果目录", textvariable=self.clearance_result_var, bootstyle="inverse-info", wraplength=980).pack(fill=X, pady=(10, 0))
+        self.make_path_block(intro, "当前站点配置来源", textvariable=self.clearance_resource_var, bootstyle="inverse-info", wraplength=980).pack(fill=X, pady=(10, 0))
 
         session_card = self.make_surface(container, padding=18, bootstyle="light")
         session_card.grid(row=1, column=0, sticky="nsew", padx=(0, 10), pady=(0, 12))
         ttk.Label(session_card, text="网站登录", font=("Microsoft YaHei UI", 15, "bold")).pack(anchor="w")
         ttk.Label(session_card, text="首次使用时，先保存一次登录态。以后通常只要检查一下是否过期。", bootstyle="secondary", wraplength=460).pack(anchor="w", pady=(6, 0))
         self.make_path_block(session_card, "当前登录态提示", textvariable=self.clearance_session_hint_var, bootstyle="secondary", wraplength=420).pack(fill=X, pady=(12, 0))
+        self.make_path_block(session_card, "资源状态", textvariable=self.clearance_resource_var, bootstyle="secondary", wraplength=420).pack(fill=X, pady=(10, 0))
         session_row = ttk.Frame(session_card)
         session_row.pack(fill=X, pady=(14, 0))
         ttk.Button(session_row, text="首次登录并保存登录态", bootstyle="primary", command=self.clearance_capture_session_clicked).pack(side=LEFT, padx=4)
@@ -775,8 +1137,51 @@ class AmsDesktopApp:
         ttk.Button(buttons, text="帮助中心", bootstyle="info", command=self.open_help_center).pack(side=LEFT, padx=4)
         ttk.Button(buttons, text="反馈建议", bootstyle="success", command=self.open_feedback_mail).pack(side=LEFT, padx=4)
 
+        private_card = self.make_surface(right, padding=18, bootstyle="light")
+        private_card.grid(row=1, column=0, sticky="ew", pady=(0, 10))
+        ttk.Label(private_card, text="私密内容解锁", font=("Microsoft YaHei UI", 15, "bold")).pack(anchor="w")
+        ttk.Label(
+            private_card,
+            text="真实模板和真实站点配置建议通过加密私密包单独导入。这样公开 release 还能继续发，但真正的业务内容不会直接裸露给路人。",
+            bootstyle="secondary",
+            wraplength=360,
+            justify="left",
+        ).pack(anchor="w", pady=(8, 0))
+        self.make_path_block(private_card, "当前模式", textvariable=self.private_pack_mode_var, bootstyle="primary", wraplength=360).pack(fill=X, pady=(12, 0))
+        self.make_path_block(private_card, "当前私密包", textvariable=self.private_pack_name_var, bootstyle="secondary", wraplength=360).pack(fill=X, pady=(10, 0))
+        self.make_path_block(private_card, "已覆盖内容", textvariable=self.private_pack_features_var, bootstyle="secondary", wraplength=360).pack(fill=X, pady=(10, 0))
+        self.make_path_block(private_card, "私密包本地目录", textvariable=self.private_pack_root_var, bootstyle="secondary", wraplength=360).pack(fill=X, pady=(10, 0))
+        private_actions = ttk.Frame(private_card)
+        private_actions.pack(fill=X, pady=(14, 0))
+        ttk.Button(private_actions, text="导入私密包", bootstyle="warning", command=self.private_pack_import_clicked).pack(side=LEFT, padx=4)
+        ttk.Button(private_actions, text="打开私密目录", bootstyle="secondary", command=self.open_private_pack_root).pack(side=LEFT, padx=4)
+        ttk.Button(private_actions, text="清除私密内容", bootstyle="danger", command=self.private_pack_clear_clicked).pack(side=LEFT, padx=4)
+        ttk.Button(private_actions, text="使用说明", bootstyle="info", command=lambda: self.open_help_page("private")).pack(side=LEFT, padx=4)
+
+        builder_card = self.make_surface(right, padding=18, bootstyle="light")
+        builder_card.grid(row=2, column=0, sticky="ew", pady=(0, 10))
+        ttk.Label(builder_card, text="制作私密包", font=("Microsoft YaHei UI", 15, "bold")).pack(anchor="w")
+        ttk.Label(
+            builder_card,
+            text="如果你要把真实模板和真实配置私下发给内部人，而不是直接放进公开 release，就从这里开始做一个 .amspack。",
+            bootstyle="secondary",
+            wraplength=360,
+            justify="left",
+        ).pack(anchor="w", pady=(8, 0))
+        self.make_path_block(builder_card, "内置示例目录", textvariable=self.private_pack_example_var, bootstyle="secondary", wraplength=360).pack(fill=X, pady=(12, 0))
+        self.make_path_block(builder_card, "建议制作目录", textvariable=self.private_pack_builder_var, bootstyle="secondary", wraplength=360).pack(fill=X, pady=(10, 0))
+        builder_actions_top = ttk.Frame(builder_card)
+        builder_actions_top.pack(fill=X, pady=(14, 0))
+        ttk.Button(builder_actions_top, text="复制示例到工作区", bootstyle="warning", command=self.private_pack_prepare_example_clicked).pack(side=LEFT, padx=4)
+        ttk.Button(builder_actions_top, text="打开示例目录", bootstyle="secondary", command=self.open_private_pack_example_source).pack(side=LEFT, padx=4)
+        ttk.Button(builder_actions_top, text="打开制作目录", bootstyle="secondary", command=self.open_private_pack_builder_dir).pack(side=LEFT, padx=4)
+        builder_actions_bottom = ttk.Frame(builder_card)
+        builder_actions_bottom.pack(fill=X, pady=(8, 0))
+        ttk.Button(builder_actions_bottom, text="制作私密包", bootstyle="success", command=self.private_pack_build_clicked).pack(side=LEFT, padx=4)
+        ttk.Button(builder_actions_bottom, text="使用说明", bootstyle="info", command=lambda: self.open_help_page("private")).pack(side=LEFT, padx=4)
+
         meta = self.make_surface(right, padding=18, bootstyle="light")
-        meta.grid(row=1, column=0, sticky="ew")
+        meta.grid(row=3, column=0, sticky="ew")
         ttk.Label(meta, text="当前配置", font=("Microsoft YaHei UI", 15, "bold")).pack(anchor="w")
         self.make_path_block(meta, "设置文件", textvariable=self.settings_path_var, bootstyle="secondary", wraplength=360).pack(fill=X, pady=(12, 0))
         self.make_path_block(meta, "当前工作区", textvariable=self.workspace_var, bootstyle="secondary", wraplength=360).pack(fill=X, pady=(10, 0))
@@ -914,6 +1319,8 @@ class AmsDesktopApp:
         self.clearance_input_var.set(str(self.ops.clearance_input_path))
         self.clearance_result_var.set(str(self.ops.clearance_result_root))
         self.workspace_var.set(str(self.ops.workspace_root))
+        self.private_pack_example_var.set(str(self.ops.private_pack_example_source_dir))
+        self.private_pack_builder_var.set(str(self.ops.private_pack_builder_dir))
 
     def refresh_clearance_session_hint(self) -> None:
         session_file = self.ops.clearance_site_session_dir / "req2_site_session.json"
@@ -921,6 +1328,26 @@ class AmsDesktopApp:
             self.clearance_session_hint_var.set(f"已保存通关查询登录态：{session_file}")
         else:
             self.clearance_session_hint_var.set("还没有保存网站登录态")
+
+    def refresh_private_pack_status(self) -> None:
+        status = self.ops.private_pack_status()
+        self.private_pack_mode_var.set(status.get("mode_label") or "公开演示模式")
+        if status.get("installed"):
+            name = status.get("display_name") or "未命名私密包"
+            version = status.get("version") or "未标版本"
+            self.private_pack_name_var.set(f"{name} · {version}")
+        else:
+            self.private_pack_name_var.set(status.get("status_text") or "还没有导入私密业务包")
+        self.private_pack_features_var.set(f"功能覆盖：{status.get('features_text') or '未启用'}")
+        self.private_pack_root_var.set(str(self.ops.private_pack_root))
+        if status.get("contract_templates_active") or status.get("contract_registry_active"):
+            self.contract_resource_var.set("当前模板来源：已解锁私密业务包")
+        else:
+            self.contract_resource_var.set("当前模板来源：公开演示资源")
+        if status.get("clearance_site_config_active"):
+            self.clearance_resource_var.set("当前站点配置来源：已解锁私密业务包")
+        else:
+            self.clearance_resource_var.set("当前站点配置来源：公开演示资源")
 
     def open_path(self, path: Path) -> None:
         try:
@@ -934,19 +1361,27 @@ class AmsDesktopApp:
     def open_settings_root(self) -> None:
         self.open_path(self.config_store.config_path.parent)
 
+    def open_private_pack_root(self) -> None:
+        self.ops.private_pack_root.mkdir(parents=True, exist_ok=True)
+        self.open_path(self.ops.private_pack_root)
+
+    def open_private_pack_example_source(self) -> None:
+        source = self.ops.private_pack_example_source_dir
+        if not source.exists():
+            messagebox.showinfo("示例目录缺失", "当前环境里没有找到内置的私密包示例目录。")
+            return
+        self.open_path(source)
+
+    def open_private_pack_builder_dir(self) -> None:
+        self.ops.private_pack_builder_dir.mkdir(parents=True, exist_ok=True)
+        self.open_path(self.ops.private_pack_builder_dir)
+
     def open_help_center(self) -> None:
         self.open_help_page("index")
 
     def open_help_page(self, key: str) -> None:
-        mapping = {
-            "index": help_assets_dir() / "index.html",
-            "contract": help_assets_dir() / "contract.html",
-            "clearance": help_assets_dir() / "clearance.html",
-            "lineup": help_assets_dir() / "lineup.html",
-            "sync": help_assets_dir() / "sync.html",
-        }
-        target = mapping.get(key)
-        if target and target.exists():
+        target = self.ops.resolve_help_page_path(key)
+        if target.exists():
             self.open_path(target)
             return
         messagebox.showinfo("帮助页面缺失", f"没有找到帮助页面：{key}")
@@ -986,6 +1421,10 @@ class AmsDesktopApp:
             return "输入内容没有通过校验。请检查 Excel 字段、日期格式、区域格式或必填项。\n\n原始信息：\n" + error_text
         if "requestexception" in lowered or "site request failed" in lowered:
             return "网站请求失败。可能是网络问题、网站暂时不可用，或者登录态已经失效。\n\n原始信息：\n" + error_text
+        if "密码不正确" in error_text or "私密包" in error_text:
+            return "私密业务包导入失败。请确认你选择的是正确的 .amspack 文件，并且密码输入无误。\n\n原始信息：\n" + error_text
+        if "private-pack.json" in error_text or "至少需要合同模板" in error_text or "示例私密包目录不存在" in error_text:
+            return "私密包源目录还没有准备好。请先复制示例到工作区，或者检查目录里是否有 private-pack.json 和至少一类可覆盖资源。\n\n原始信息：\n" + error_text
         return error_text
 
     def choose_workspace_clicked(self) -> None:
@@ -1011,9 +1450,118 @@ class AmsDesktopApp:
         self.settings_path_var.set(str(self.config_store.config_path))
         self.refresh_paths()
         self.refresh_clearance_session_hint()
+        self.refresh_private_pack_status()
         self.set_status("设置已保存")
         self.log(f"设置已保存。工作区：{self.ops.workspace_root}")
         messagebox.showinfo("设置已保存", "新的设置已经保存并立即生效。")
+
+    def private_pack_import_clicked(self) -> None:
+        dialog = PrivatePackImportDialog(self.window)
+        choice = dialog.show()
+        if not choice:
+            return
+        pack_path, password = choice
+        self.start_task(
+            "导入私密业务包",
+            lambda: self.ops.install_private_pack(pack_path, password),
+            self.on_private_pack_imported,
+        )
+
+    def on_private_pack_imported(self, result: dict[str, Any]) -> None:
+        self.refresh_private_pack_status()
+        self.log(f"私密业务包已导入：{result.get('display_name') or result.get('summary', {}).get('display_name', '')}")
+        if result.get("version"):
+            self.log(f"私密业务包版本：{result['version']}")
+        if result.get("features_text"):
+            self.log(f"覆盖内容：{result['features_text']}")
+        self.log(f"私密目录：{result.get('unpacked_root') or self.ops.private_pack_unpack_dir}")
+        messagebox.showinfo(
+            "私密业务包已导入",
+            "私密内容已经解锁并安装到本地。\n\n后续 req1 / req2 会优先读取这里面的模板和配置。",
+        )
+
+    def private_pack_prepare_example_clicked(self) -> None:
+        target = self.ops.private_pack_builder_source_dir
+        force = False
+        if target.exists():
+            force = messagebox.askyesno(
+                "示例目录已经存在",
+                "工作区里已经有一份私密包示例目录。\n\n如果继续覆盖，你之前在里面改过的内容会被重置为示例版本。\n\n是否覆盖？",
+            )
+            if not force:
+                self.open_path(target)
+                return
+        self.start_task(
+            "复制私密包示例到工作区",
+            lambda: self.ops.prepare_private_pack_example_source(force=force),
+            self.on_private_pack_example_prepared,
+        )
+
+    def on_private_pack_example_prepared(self, result: dict[str, Any]) -> None:
+        copied = bool(result.get("copied"))
+        target_path = Path(result.get("target_path") or self.ops.private_pack_builder_source_dir)
+        action_text = "已复制" if copied else "示例目录已存在"
+        self.log(f"{action_text}：{target_path}")
+        messagebox.showinfo(
+            "示例目录已就绪",
+            "工作区里的私密包示例目录已经准备好。\n\n你现在可以打开它，替换成自己的真实模板和真实配置，再回来点“制作私密包”。",
+        )
+        self.open_path(target_path)
+
+    def private_pack_build_clicked(self) -> None:
+        default_source = (
+            str(self.ops.private_pack_builder_source_dir)
+            if self.ops.private_pack_builder_source_dir.exists()
+            else str(self.ops.private_pack_example_source_dir)
+        )
+        default_output = str(self.ops.suggest_private_pack_output_path())
+        dialog = PrivatePackBuildDialog(self.window, default_source=default_source, default_output=default_output)
+        choice = dialog.show()
+        if not choice:
+            return
+        source_dir, output_path, password = choice
+        self.start_task(
+            "制作私密业务包",
+            lambda: self.ops.build_private_pack_file(source_dir, output_path, password),
+            self.on_private_pack_built,
+        )
+
+    def on_private_pack_built(self, result: dict[str, Any]) -> None:
+        summary = result.get("summary") or {}
+        output_path = Path(result.get("output_path") or self.ops.private_pack_builder_output_dir)
+        self.log(f"私密业务包已生成：{output_path}")
+        if summary.get("display_name"):
+            self.log(f"包名称：{summary['display_name']}")
+        if summary.get("version"):
+            self.log(f"包版本：{summary['version']}")
+        if summary.get("features"):
+            self.log("覆盖内容：" + "、".join(str(item) for item in summary["features"]))
+        messagebox.showinfo(
+            "私密业务包已生成",
+            "新的 .amspack 已经生成完成。\n\n你现在可以把它私下发给需要的人，再让对方在应用设置页导入。",
+        )
+        self.open_path(output_path.parent if output_path.suffix else output_path)
+
+    def private_pack_clear_clicked(self) -> None:
+        if not self.ops.private_pack_status().get("installed"):
+            messagebox.showinfo("还没有私密内容", "当前没有已解锁的私密业务包。")
+            return
+        confirmed = messagebox.askyesno(
+            "清除私密内容",
+            "这会删除本机已经解锁的私密模板、私密配置和缓存包。\n\n应用本体不会被删除，公开演示模式仍然可以使用。\n\n是否继续？",
+        )
+        if not confirmed:
+            return
+        self.start_task("清除私密业务包", self.ops.clear_private_pack, self.on_private_pack_cleared)
+
+    def on_private_pack_cleared(self, result: dict[str, Any]) -> None:
+        self.refresh_private_pack_status()
+        removed = result.get("removed_paths") or []
+        if removed:
+            self.log("已清除私密内容：")
+            for path in removed:
+                self.log(f" - {path}")
+        messagebox.showinfo("已清除", "本机私密内容已经清除，应用已回到公开演示模式。")
 
     def contract_reset_template_clicked(self) -> None:
         self.start_task("重新生成合同模板", self.ops.contract_reset_template, self.on_contract_template_reset)

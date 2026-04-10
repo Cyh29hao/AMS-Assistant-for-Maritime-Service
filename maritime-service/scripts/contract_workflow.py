@@ -22,13 +22,17 @@ from openpyxl import Workbook, load_workbook
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 SKILL_ROOT = SCRIPT_DIR.parent
-ASSETS_DIR = SKILL_ROOT / "assets" / "contract_templates"
+ASSETS_DIR = Path(
+    os.environ.get("AMS_CONTRACT_TEMPLATE_DIR", str(SKILL_ROOT / "assets" / "contract_templates"))
+).resolve()
 EXAMPLES_DIR = SKILL_ROOT / "examples" / "contract_requests"
 EXAMPLE_WORKBOOK_DIR = SKILL_ROOT / "examples" / "workbooks"
 DATA_ROOT = Path(os.environ.get("AMS_DATA_ROOT", str(SKILL_ROOT / "output"))).resolve()
 OUTPUT_DIR = DATA_ROOT / "contracts"
 REPORT_DIR = DATA_ROOT / "reports"
-REGISTRY_PATH = SCRIPT_DIR / "contract_template_registry.json"
+REGISTRY_PATH = Path(
+    os.environ.get("AMS_CONTRACT_REGISTRY_PATH", str(SCRIPT_DIR / "contract_template_registry.json"))
+).resolve()
 
 MONTHS_EN = {
     1: "JAN",

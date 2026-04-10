@@ -163,9 +163,11 @@ class UpdateInstallerWindow:
 
 def run_self_test(output_path: Path, workspace_root: Path | None = None) -> int:
     import openpyxl
+    import shutil
 
     from desktop_app.excel_sync_engine import DEFAULT_SETTINGS as DEFAULT_SYNC_SETTINGS
     from desktop_app.excel_sync_engine import SyncTask, create_demo_workbooks, sync_task
+    from desktop_app.private_pack import build_private_pack
 
     config = AppConfig.default() if workspace_root is None else AppConfig(workspace_root=str(workspace_root.resolve()))
     ops = AmsOperations(config)
@@ -200,6 +202,76 @@ def run_self_test(output_path: Path, workspace_root: Path | None = None) -> int:
     finally:
         sync_workbook.close()
 
+    private_test_root = ops.workspace_root / "_self_test_private_pack"
+    if private_test_root.exists():
+        shutil.rmtree(private_test_root)
+    private_source = private_test_root / "source"
+    private_dist = private_test_root / "dist"
+    (private_source / "maritime-service" / "assets" / "contract_templates").mkdir(parents=True, exist_ok=True)
+    (private_source / "maritime-service" / "scripts").mkdir(parents=True, exist_ok=True)
+    (private_source / "desktop_app" / "release_assets" / "help").mkdir(parents=True, exist_ok=True)
+    (private_source / "private-pack.json").write_text(
+        json.dumps(
+            {
+                "pack_id": "ams-self-test-pack",
+                "display_name": "AMS Self Test Pack",
+                "version": "self-test",
+                "description": "Built automatically by desktop self-test.",
+            },
+            ensure_ascii=False,
+            indent=2,
+        ),
+        encoding="utf-8",
+    )
+    public_template = next((skill_root() / "assets" / "contract_templates").glob("*.docx"))
+    copied_template = private_source / "maritime-service" / "assets" / "contract_templates" / public_template.name
+    shutil.copy2(public_template, copied_template)
+    (private_source / "maritime-service" / "scripts" / "contract_template_registry.json").write_text(
+        json.dumps(
+            {
+                "domestic_forwarder": {
+                    "display_name": "Self Test Private Template",
+                    "template_file": public_template.name,
+                    "contract_no_pattern": "SELFTEST-{yyyymm}-{vessel_name_upper}",
+                }
+            },
+            ensure_ascii=False,
+            indent=2,
+        ),
+        encoding="utf-8",
+    )
+    (private_source / "maritime-service" / "scripts" / "clearance_site_config.json").write_text(
+        json.dumps(
+            {
+                "site_name": "Self Test Private Site",
+                "base_url": "https://example.invalid/self-test",
+            },
+            ensure_ascii=False,
+            indent=2,
+        ),
+        encoding="utf-8",
+    )
+    (private_source / "desktop_app" / "release_assets" / "help" / "private-pack.html").write_text(
+        "<!doctype html><html lang='zh-CN'><body><h1>Private help override</h1></body></html>",
+        encoding="utf-8",
+    )
+    private_pack_path = private_dist / "ams-self-test.amspack"
+    private_dist.mkdir(parents=True, exist_ok=True)
+    private_summary = build_private_pack(private_source, private_pack_path, "self-test-password")
+    private_pack_demo_created = private_pack_path.exists()
+    private_install = ops.install_private_pack(private_pack_path, "self-test-password")
+    private_status = ops.private_pack_status()
+    private_help_path = ops.resolve_help_page_path("private")
+    private_help_override_exists = private_help_path.exists()
+    private_contract_module = ops.load_contract_module()
+    private_site_module = ops.load_site_module()
+    private_contract_pattern = private_contract_module.load_registry()["domestic_forwarder"]["contract_no_pattern"]
+    private_site_name = private_site_module.load_config()["site_name"]
+    private_clear = ops.clear_private_pack()
+    private_restored_public = not private_clear.get("installed")
+    private_help_fallback_exists = ops.resolve_help_page_path("private").exists()
+    shutil.rmtree(private_test_root, ignore_errors=True)
+
     report = {
         "success": True,
         "frozen": bool(getattr(sys, "frozen", False)),
@@ -219,6 +291,25 @@ def run_self_test(output_path: Path, workspace_root: Path | None = None) -> int:
         "sync_blank_row_preserved": blank_row_preserved,
         "sync_excluded_column_removed": excluded_column_removed,
         "help_index_exists": (help_assets_dir() / "index.html").exists(),
+        "private_pack_example_source_exists": ops.private_pack_example_source_dir.exists(),
+        "private_pack_feature_available": True,
+        "private_pack_demo_created": private_pack_demo_created,
+        "private_pack_demo_is_temporary": True,
+        "private_pack_demo_path": str(private_pack_path),
+        "private_pack_demo_name": private_summary.display_name,
+        "private_pack_demo_features": private_summary.features,
+        "private_pack_installed": private_status["installed"],
+        "private_pack_mode_label": private_status["mode_label"],
+        "private_pack_contract_override_active": private_status["contract_registry_active"],
+        "private_pack_clearance_override_active": private_status["clearance_site_config_active"],
+        "private_pack_help_override_active": private_status["help_overrides_active"],
+        "private_pack_contract_pattern": private_contract_pattern,
+        "private_pack_site_name": private_site_name,
+        "private_pack_help_path": str(private_help_path),
+        "private_pack_help_override_exists": private_help_override_exists,
+        "private_pack_install_result_name": private_install.get("display_name") or private_install.get("summary", {}).get("display_name", ""),
+        "private_pack_cleared_back_to_public": private_restored_public,
+        "private_pack_help_fallback_exists": private_help_fallback_exists,
         "guide_exists": (release_assets_dir() / "应用使用说明.html").exists(),
         "updater_exists": (Path(sys.executable).resolve().parent / "AMS-Assistant-Updater.exe").exists()
         if getattr(sys, "frozen", False)

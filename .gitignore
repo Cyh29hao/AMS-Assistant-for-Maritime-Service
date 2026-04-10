@@ -11,6 +11,8 @@ README.local-copy.md
 desktop-self-test-repo.json
 desktop-self-test-workspace/
 maritime-service/blank-contract-template.xlsx
+*.amspack
+private-pack-dist/
 
 maritime-service/output/contracts/*
 !maritime-service/output/contracts/.gitkeep

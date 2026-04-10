@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AMS Assistant 私密业务包说明</title>
+  <link rel="stylesheet" href="./style.css">
+</head>
+<body>
+  <div class="wrap">
+    <section class="hero">
+      <div class="pill">AMS Assistant Help Center</div>
+      <h1>私密业务包</h1>
+      <p>如果你拿到的是一个 <code>.amspack</code> 文件，这一页就是给你看的。它的作用不是把应用变成复杂账号系统，而是把真实模板、真实站点配置和真实业务规则从公开 release 里分离出去，只在需要的人手里解锁。</p>
+      <div class="nav">
+        <a href="./index.html">帮助首页</a>
+        <a href="./contract.html">合同生成中心</a>
+        <a href="./clearance.html">通关查询中心</a>
+        <a href="./lineup.html">船期与港区矩阵</a>
+        <a href="./sync.html">表格自动同步</a>
+        <span class="active">私密业务包</span>
+      </div>
+    </section>
+
+    <div class="grid">
+      <section class="panel">
+        <h2>它解决什么问题</h2>
+        <ul>
+          <li>公开 release 可以继续正常分发。</li>
+          <li>真实模板和真实配置不需要直接塞进公开仓库。</li>
+          <li>内部人只需要拿到一个加密包和一串密码，就能解锁完整内容。</li>
+          <li>以后主程序更新时，本地已经解锁的内容尽量继续保留。</li>
+        </ul>
+      </section>
+
+      <section class="panel">
+        <h2>它不解决什么问题</h2>
+        <ul>
+          <li>它主要是防路人，不是企业级权限系统。</li>
+          <li>已经被授权、而且故意要导出内容的人，理论上仍然能拿到本机解锁后的文件。</li>
+          <li>所以它适合防公开泄露、防误传播、防随手翻文件夹，不适合拿来假装“绝对保密”。</li>
+        </ul>
+      </section>
+    </div>
+
+    <section class="panel" style="margin-top:18px;">
+      <h2>第一次怎么导入</h2>
+      <ol>
+        <li>打开桌面应用。</li>
+        <li>进入 <strong>设置</strong>。</li>
+        <li>找到 <strong>私密内容解锁</strong>。</li>
+        <li>点击 <strong>导入私密包</strong>。</li>
+        <li>选择你拿到的 <code>.amspack</code> 文件。</li>
+        <li>输入对方私下给你的密码。</li>
+        <li>导入成功后，应用会优先读取其中的模板和配置。</li>
+      </ol>
+    </section>
+
+    <section class="panel" style="margin-top:18px;">
+      <h2>如果你自己要做私密包</h2>
+      <ol>
+        <li>打开桌面应用，进入 <strong>设置</strong>。</li>
+        <li>在 <strong>制作私密包</strong> 区域点击 <strong>复制示例到工作区</strong>。</li>
+        <li>打开工作区里的示例目录，把里面的演示配置替换成你自己的真实模板、真实规则和真实站点配置。</li>
+        <li>回到应用，点击 <strong>制作私密包</strong>。</li>
+        <li>选择源目录、保存位置，并设置一串密码。</li>
+        <li>生成出的 <code>.amspack</code> 就可以私下发给内部人。</li>
+      </ol>
+    </section>
+
+    <section class="panel" style="margin-top:18px;">
+      <h2>导入后会发生什么</h2>
+      <ul>
+        <li>私密内容会被解锁并保存到本地用户数据目录。</li>
+        <li>合同生成中心会优先使用私密模板和私密规则。</li>
+        <li>通关查询中心会优先使用私密站点配置。</li>
+        <li>帮助中心如果有私密版页面，也可以被一并覆盖。</li>
+      </ul>
+    </section>
+
+    <section class="panel" style="margin-top:18px;">
+      <h2>以后更新主程序怎么办</h2>
+      <p>私密业务包默认保存在本地用户数据目录，而不是程序目录里。所以主程序升级时，这部分内容不应该被无谓覆盖。正常情况下，你不需要每更新一次主程序就重新导入一次私密包。</p>
+    </section>
+
+    <section class="panel" style="margin-top:18px;">
+      <h2>如果要换包或清除</h2>
+      <ul>
+        <li>要换新版本私密包：再次点击 <strong>导入私密包</strong>，新包会覆盖旧包。</li>
+        <li>要回到公开演示模式：点击 <strong>清除私密内容</strong>。</li>
+        <li>如果密码输错：重新导入即可，不会把主程序搞坏。</li>
+      </ul>
+    </section>
+
+    <div class="tip">
+      如果你拿到的是新版本私密包，但导入后效果不像预期，优先检查两件事：一是你拿到的包版本是否正确，二是密码是否输入正确。还不行的话，直接把问题反馈给包的分发者，而不是先怀疑应用本体坏了。
+    </div>
+  </div>
+</body>
+</html>

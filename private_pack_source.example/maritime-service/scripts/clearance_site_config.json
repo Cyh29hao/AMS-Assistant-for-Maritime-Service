@@ -1,0 +1,6 @@
+{
+  "site_name": "AMS Private Pack Demo Site",
+  "base_url": "https://example.invalid/ams-private-demo",
+  "search_page": "/query",
+  "notes": "这是一个演示私密包里的站点配置文件。真实使用时请替换成你自己的配置。"
+}
