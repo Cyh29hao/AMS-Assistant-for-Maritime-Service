@@ -10,7 +10,7 @@ ROOT = THIS_DIR.parent
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from desktop_app.runtime import APP_NAME, APP_VERSION
+from desktop_app.runtime import APP_NAME, APP_VERSION, UPDATER_EXE_NAME
 
 
 BUILD_ROOT = ROOT / "desktop_release_build"
@@ -18,6 +18,7 @@ PYI_WORK_ROOT = BUILD_ROOT / "pyinstaller-work"
 PYI_DIST_ROOT = BUILD_ROOT / "pyinstaller-dist"
 PYI_SPEC_ROOT = BUILD_ROOT / "pyinstaller-spec"
 APP_FOLDER_NAME = "AMS-Assistant-Desktop"
+UPDATER_APP_NAME = "AMS-Assistant-Updater"
 PREVIEW_ROOT = ROOT / "普通用户体验区-桌面应用版-release预览"
 PREVIEW_APP_ROOT = PREVIEW_ROOT / "app"
 PREVIEW_USER_DATA_ROOT = PREVIEW_ROOT / "user-data"
@@ -106,6 +107,55 @@ def build_pyinstaller_bundle() -> Path:
     return PYI_DIST_ROOT / APP_FOLDER_NAME
 
 
+def build_pyinstaller_updater() -> Path:
+    work_root = PYI_WORK_ROOT / "updater"
+    dist_root = PYI_DIST_ROOT / "updater"
+    spec_root = PYI_SPEC_ROOT / "updater"
+    remove_if_exists(work_root)
+    remove_if_exists(dist_root)
+    remove_if_exists(spec_root)
+    work_root.mkdir(parents=True, exist_ok=True)
+    dist_root.mkdir(parents=True, exist_ok=True)
+    spec_root.mkdir(parents=True, exist_ok=True)
+
+    command = [
+        sys.executable,
+        "-m",
+        "PyInstaller",
+        "--noconfirm",
+        "--clean",
+        "--windowed",
+        "--onefile",
+        "--name",
+        UPDATER_APP_NAME,
+        "--workpath",
+        str(work_root),
+        "--distpath",
+        str(dist_root),
+        "--specpath",
+        str(spec_root),
+        "--add-data",
+        f"{ROOT / 'maritime-service'};maritime-service",
+        "--add-data",
+        f"{ROOT / 'desktop_app' / 'release_assets'};desktop_app/release_assets",
+        "--collect-all",
+        "ttkbootstrap",
+        "--collect-all",
+        "openpyxl",
+        "--collect-all",
+        "docx",
+        "--collect-all",
+        "playwright",
+        "--collect-all",
+        "requests",
+        str(ROOT / "launch_ams_update_helper.py"),
+    ]
+    for module_name in EXCLUDED_MODULES:
+        command.extend(["--exclude-module", module_name])
+    run(command)
+    return dist_root / f"{UPDATER_APP_NAME}.exe"
+
+
 def launcher_text() -> str:
     return (
         "@echo off\r\n"
@@ -189,11 +239,12 @@ def proxy_bat(target_name: str) -> str:
     )
 
 
-def copy_preview_assets(bundle_dir: Path) -> None:
+def copy_preview_assets(bundle_dir: Path, updater_exe: Path) -> None:
     remove_if_exists(PREVIEW_ROOT)
     PREVIEW_APP_ROOT.mkdir(parents=True, exist_ok=True)
     PREVIEW_USER_DATA_ROOT.mkdir(parents=True, exist_ok=True)
     shutil.copytree(bundle_dir, PREVIEW_APP_ROOT / APP_FOLDER_NAME)
+    shutil.copy2(updater_exe, PREVIEW_APP_ROOT / APP_FOLDER_NAME / UPDATER_EXE_NAME)
     shutil.copytree(HELP_SOURCE, PREVIEW_ROOT / "help")
 
     shutil.copy2(GUIDE_SOURCE, PREVIEW_ROOT / "README.html")
@@ -242,7 +293,8 @@ def make_zip() -> Path:
 def main() -> int:
     print(f"[INFO] Building {APP_NAME} Desktop release preview...")
     bundle_dir = build_pyinstaller_bundle()
-    copy_preview_assets(bundle_dir)
+    updater_exe = build_pyinstaller_updater()
+    copy_preview_assets(bundle_dir, updater_exe)
     archive_path = make_zip()
     print(f"[OK] Preview folder: {PREVIEW_ROOT}")
     print(f"[OK] Preview archive: {archive_path}")

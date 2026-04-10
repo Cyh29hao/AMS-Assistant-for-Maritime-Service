@@ -1,11 +1,11 @@
 from __future__ import annotations
 
 import queue
-import subprocess
 import threading
 import traceback
 import webbrowser
 from pathlib import Path
+import tkinter as tk
 import tkinter.ttk as tkttk
 from tkinter import filedialog, messagebox
 from tkinter.scrolledtext import ScrolledText
@@ -48,6 +48,233 @@ BrowserChoices = [
 ]
 
 
+class ScrollableNotebookPage(ttk.Frame):
+    def __init__(self, parent: ttk.Notebook, window: ttk.Window, padding: int | tuple[int, ...] = 18) -> None:
+        super().__init__(parent)
+        self.window = window
+        self.canvas = tk.Canvas(
+            self,
+            highlightthickness=0,
+            borderwidth=0,
+            relief="flat",
+            background=self.window.style.colors.bg,
+        )
+        self.scrollbar = ttk.Scrollbar(self, orient="vertical", command=self.canvas.yview, bootstyle="round")
+        self.canvas.configure(yscrollcommand=self.scrollbar.set)
+
+        self.canvas.pack(side=LEFT, fill=BOTH, expand=True)
+        self.scrollbar.pack(side=RIGHT, fill=Y, padx=(8, 0), pady=2)
+
+        self.content = ttk.Frame(self.canvas, padding=padding)
+        self.content_window = self.canvas.create_window((0, 0), window=self.content, anchor="nw")
+
+        self.content.bind("<Configure>", self._refresh_scrollregion)
+        self.canvas.bind("<Configure>", self._resize_content_width)
+
+        self.window.bind_all("<MouseWheel>", self._on_mousewheel, add="+")
+        self.window.bind_all("<Button-4>", self._on_mousewheel_linux, add="+")
+        self.window.bind_all("<Button-5>", self._on_mousewheel_linux, add="+")
+
+    def _refresh_scrollregion(self, _event=None) -> None:
+        bbox = self.canvas.bbox("all")
+        if bbox is not None:
+            self.canvas.configure(scrollregion=bbox)
+
+    def _resize_content_width(self, event) -> None:
+        if event.width > 1:
+            self.canvas.itemconfigure(self.content_window, width=event.width)
+
+    def _contains_widget(self, widget) -> bool:
+        current = widget
+        while current is not None:
+            if current == self:
+                return True
+            current = getattr(current, "master", None)
+        return False
+
+    def _is_nested_scroll_widget(self, widget) -> bool:
+        scroll_classes = {
+            "Treeview",
+            "Text",
+            "Canvas",
+            "TScrollbar",
+            "Scrollbar",
+            "Listbox",
+        }
+        current = widget
+        while current is not None:
+            if current == self.canvas:
+                current = getattr(current, "master", None)
+                continue
+            if getattr(current, "winfo_class", lambda: "")() in scroll_classes:
+                return True
+            current = getattr(current, "master", None)
+        return False
+
+    def _on_mousewheel(self, event):
+        if not self.winfo_ismapped() or not self._contains_widget(event.widget):
+            return None
+        if self._is_nested_scroll_widget(event.widget):
+            return None
+        delta = event.delta
+        if delta == 0:
+            return None
+        steps = -1 if delta > 0 else 1
+        self.canvas.yview_scroll(steps, "units")
+        return "break"
+
+    def _on_mousewheel_linux(self, event):
+        if not self.winfo_ismapped() or not self._contains_widget(event.widget):
+            return None
+        if self._is_nested_scroll_widget(event.widget):
+            return None
+        steps = -1 if event.num == 4 else 1
+        self.canvas.yview_scroll(steps, "units")
+        return "break"
+
+
+class UpdatePreparationDialog:
+    def __init__(self, parent: ttk.Window, title: str = "正在准备更新") -> None:
+        self.parent = parent
+        self.window = ttk.Toplevel(parent)
+        self.window.title(title)
+        self.window.geometry("540x260")
+        self.window.minsize(540, 260)
+        self.window.maxsize(700, 360)
+        self.window.transient(parent)
+        self.window.grab_set()
+        self.window.protocol("WM_DELETE_WINDOW", self.on_close_requested)
+
+        self.queue: queue.Queue[tuple[str, Any]] = queue.Queue()
+        self.running = False
+        self.on_success: Callable[[Any], None] | None = None
+        self.on_error: Callable[[str], None] | None = None
+        self.on_closed: Callable[[], None] | None = None
+
+        self.progress_var = ttk.DoubleVar(value=0)
+        self.percent_var = ttk.StringVar(value="0%")
+        self.status_var = ttk.StringVar(value="正在连接更新源…")
+        self.detail_var = ttk.StringVar(value="")
+
+        self.build_ui()
+        self.window.after(120, self.process_queue)
+
+    def build_ui(self) -> None:
+        outer = ttk.Frame(self.window, padding=(20, 18, 20, 18))
+        outer.pack(fill=BOTH, expand=True)
+
+        card = ttk.Frame(outer, padding=20, bootstyle="light", borderwidth=1, relief="solid")
+        card.pack(fill=BOTH, expand=True)
+
+        ttk.Label(
+            card,
+            text="AUTO UPDATE",
+            bootstyle="inverse-primary",
+            font=("Microsoft YaHei UI", 9, "bold"),
+            padding=(10, 5),
+        ).pack(anchor="w")
+        ttk.Label(card, text="正在准备自动更新", font=("Microsoft YaHei UI", 18, "bold"), bootstyle="primary").pack(anchor="w", pady=(12, 4))
+        ttk.Label(
+            card,
+            text="这一步会先下载新版本，再切换到独立更新器继续安装。整个过程不需要你手动翻文件夹。",
+            bootstyle="secondary",
+            wraplength=480,
+            justify="left",
+        ).pack(anchor="w")
+
+        progress_row = ttk.Frame(card)
+        progress_row.pack(fill=X, pady=(18, 8))
+        ttk.Progressbar(
+            progress_row,
+            variable=self.progress_var,
+            maximum=100,
+            bootstyle="success-striped",
+        ).pack(side=LEFT, fill=X, expand=True)
+        ttk.Label(progress_row, textvariable=self.percent_var, font=("Microsoft YaHei UI", 10, "bold"), bootstyle="primary").pack(side=LEFT, padx=(12, 0))
+
+        ttk.Label(card, textvariable=self.status_var, font=("Microsoft YaHei UI", 12, "bold")).pack(anchor="w", pady=(10, 4))
+        ttk.Label(card, textvariable=self.detail_var, bootstyle="secondary", wraplength=480, justify="left").pack(anchor="w")
+        ttk.Label(
+            card,
+            text="更新不会清除你的工作区、设置、同步任务和通关登录态。",
+            bootstyle="secondary",
+            wraplength=480,
+            justify="left",
+        ).pack(anchor="w", pady=(16, 0))
+
+    def start(
+        self,
+        worker: Callable[[Callable[[dict[str, Any]], None]], Any],
+        on_success: Callable[[Any], None],
+        on_error: Callable[[str], None] | None = None,
+        on_closed: Callable[[], None] | None = None,
+    ) -> None:
+        self.running = True
+        self.on_success = on_success
+        self.on_error = on_error
+        self.on_closed = on_closed
+
+        def run() -> None:
+            try:
+                result = worker(lambda payload: self.queue.put(("progress", payload)))
+            except Exception:
+                self.queue.put(("error", traceback.format_exc()))
+                return
+            self.queue.put(("success", result))
+
+        threading.Thread(target=run, daemon=True).start()
+
+    def process_queue(self) -> None:
+        try:
+            while True:
+                kind, payload = self.queue.get_nowait()
+                if kind == "progress":
+                    progress = payload if isinstance(payload, dict) else {}
+                    value = float(progress.get("value", 0))
+                    self.progress_var.set(value)
+                    self.percent_var.set(f"{value:.0f}%")
+                    self.status_var.set(str(progress.get("message", "正在准备更新…")))
+                    self.detail_var.set(str(progress.get("detail", "")))
+                elif kind == "success":
+                    self.running = False
+                    if self.on_success is not None:
+                        self.on_success(payload)
+                elif kind == "error":
+                    self.running = False
+                    error_text = str(payload)
+                    if self.on_error is not None:
+                        self.on_error(error_text)
+                    else:
+                        messagebox.showerror("准备更新失败", error_text)
+                    self.close()
+        except queue.Empty:
+            pass
+        finally:
+            if self.window.winfo_exists():
+                self.window.after(120, self.process_queue)
+
+    def set_status(self, message: str, detail: str = "", value: float | None = None) -> None:
+        self.status_var.set(message)
+        self.detail_var.set(detail)
+        if value is not None:
+            self.progress_var.set(value)
+            self.percent_var.set(f"{value:.0f}%")
+
+    def close(self) -> None:
+        if not self.window.winfo_exists():
+            return
+        self.window.grab_release()
+        self.window.destroy()
+        if self.on_closed is not None:
+            self.on_closed()
+
+    def on_close_requested(self) -> None:
+        if self.running:
+            messagebox.showinfo("正在准备更新", "更新准备还在进行中，请稍等片刻。")
+            return
+        self.close()
+
+
 class AmsDesktopApp:
     def __init__(self) -> None:
         self.config_store = ConfigStore()
@@ -87,6 +314,7 @@ class AmsDesktopApp:
         self.task_running = False
         self.log_widget: ScrolledText | None = None
         self.sync_panel: ExcelSyncPanel | None = None
+        self.update_dialog: UpdatePreparationDialog | None = None
 
         self.apply_visual_styles()
         self.build_ui()
@@ -114,19 +342,12 @@ class AmsDesktopApp:
         self.notebook = ttk.Notebook(notebook_shell, bootstyle="primary")
         self.notebook.pack(fill=BOTH, expand=True)
 
-        self.home_tab = ttk.Frame(self.notebook, padding=18)
-        self.contract_tab = ttk.Frame(self.notebook, padding=18)
-        self.clearance_tab = ttk.Frame(self.notebook, padding=18)
-        self.lineup_tab = ttk.Frame(self.notebook, padding=18)
-        self.sync_tab = ttk.Frame(self.notebook, padding=18)
-        self.settings_tab = ttk.Frame(self.notebook, padding=18)
-
-        self.notebook.add(self.home_tab, text="首页")
-        self.notebook.add(self.contract_tab, text="合同生成")
-        self.notebook.add(self.clearance_tab, text="通关查询")
-        self.notebook.add(self.lineup_tab, text="船期矩阵")
-        self.notebook.add(self.sync_tab, text="表格同步")
-        self.notebook.add(self.settings_tab, text="设置")
+        self.home_tab, self.home_content = self.create_scrollable_tab("首页")
+        self.contract_tab, self.contract_content = self.create_scrollable_tab("合同生成")
+        self.clearance_tab, self.clearance_content = self.create_scrollable_tab("通关查询")
+        self.lineup_tab, self.lineup_content = self.create_scrollable_tab("船期矩阵")
+        self.sync_tab, self.sync_content = self.create_scrollable_tab("表格同步")
+        self.settings_tab, self.settings_content = self.create_scrollable_tab("设置")
 
         self.build_home_tab()
         self.build_contract_tab()
@@ -161,6 +382,11 @@ class AmsDesktopApp:
         status_shell = self.make_surface(outer, padding=(12, 8), bootstyle="light")
         status_shell.pack(fill=X)
         ttk.Label(status_shell, textvariable=self.status_text, anchor="w", bootstyle="secondary").pack(fill=X)
+
+    def create_scrollable_tab(self, title: str) -> tuple[ScrollableNotebookPage, ttk.Frame]:
+        tab = ScrollableNotebookPage(self.notebook, self.window, padding=18)
+        self.notebook.add(tab, text=title)
+        return tab, tab.content
 
     def build_header(self, parent: ttk.Frame) -> None:
         header = ttk.Frame(parent)
@@ -208,10 +434,11 @@ class AmsDesktopApp:
         ttk.Button(actions2, text="GitHub", bootstyle="secondary", command=lambda: webbrowser.open(APP_REPO_URL)).pack(side=LEFT, padx=4)
 
     def build_home_tab(self) -> None:
-        self.home_tab.columnconfigure(0, weight=7)
-        self.home_tab.columnconfigure(1, weight=4)
+        container = self.home_content
+        container.columnconfigure(0, weight=7)
+        container.columnconfigure(1, weight=4)
 
-        hero = self.make_surface(self.home_tab, padding=22, bootstyle="primary")
+        hero = self.make_surface(container, padding=22, bootstyle="primary")
         hero.grid(row=0, column=0, sticky="nsew", padx=(0, 10), pady=(0, 12))
         self.make_pill(hero, "欢迎使用", "light").pack(anchor="w")
         ttk.Label(hero, text="如果你只是想做事，就从这里开始。", font=("Microsoft YaHei UI", 15, "bold"), bootstyle="inverse-primary").pack(anchor="w", pady=(10, 6))
@@ -238,7 +465,7 @@ class AmsDesktopApp:
         ttk.Button(hero_buttons, text=SYNC_FEATURE_NAME, bootstyle="light", command=lambda: self.select_tab(self.sync_tab)).pack(side=LEFT, padx=4)
         ttk.Button(hero_buttons, text="打开帮助中心", bootstyle="info", command=self.open_help_center).pack(side=LEFT, padx=4)
 
-        summary = self.make_surface(self.home_tab, padding=20, bootstyle="light")
+        summary = self.make_surface(container, padding=20, bootstyle="light")
         summary.grid(row=0, column=1, sticky="nsew", pady=(0, 12))
         ttk.Label(summary, text="当前环境", font=("Microsoft YaHei UI", 15, "bold")).pack(anchor="w")
         ttk.Label(summary, textvariable=self.last_update_var, bootstyle="primary", font=("Microsoft YaHei UI", 11, "bold")).pack(anchor="w", pady=(10, 0))
@@ -246,7 +473,7 @@ class AmsDesktopApp:
         self.make_path_block(summary, "设置文件", textvariable=self.settings_path_var, bootstyle="secondary", wraplength=360).pack(fill=X, pady=(10, 0))
         self.make_path_block(summary, "网站登录态", textvariable=self.clearance_session_hint_var, bootstyle="secondary", wraplength=360).pack(fill=X, pady=(10, 0))
 
-        feature_grid = ttk.Frame(self.home_tab)
+        feature_grid = ttk.Frame(container)
         feature_grid.grid(row=1, column=0, columnspan=2, sticky="nsew", pady=(0, 12))
         feature_grid.columnconfigure(0, weight=1)
         feature_grid.columnconfigure(1, weight=1)
@@ -304,7 +531,7 @@ class AmsDesktopApp:
             bootstyle="warning",
         )
 
-        latest = self.make_surface(self.home_tab, padding=18, bootstyle="light")
+        latest = self.make_surface(container, padding=18, bootstyle="light")
         latest.grid(row=2, column=0, columnspan=2, sticky="ew")
         ttk.Label(latest, text="最近结果快捷入口", font=("Microsoft YaHei UI", 15, "bold")).pack(anchor="w")
         ttk.Label(latest, text="如果你只是想确认最新产物，下面这些按钮比翻目录更快。", bootstyle="secondary", wraplength=980).pack(anchor="w", pady=(6, 0))
@@ -316,10 +543,11 @@ class AmsDesktopApp:
         ttk.Button(latest_buttons, text="反馈建议", bootstyle="warning", command=self.open_feedback_mail).pack(side=RIGHT, padx=4)
 
     def build_contract_tab(self) -> None:
-        self.contract_tab.columnconfigure(0, weight=7)
-        self.contract_tab.columnconfigure(1, weight=4)
+        container = self.contract_content
+        container.columnconfigure(0, weight=7)
+        container.columnconfigure(1, weight=4)
 
-        left = self.make_surface(self.contract_tab, padding=22, bootstyle="success")
+        left = self.make_surface(container, padding=22, bootstyle="success")
         left.grid(row=0, column=0, sticky="nsew", padx=(0, 10))
         self.make_pill(left, CONTRACT_FEATURE_NAME, "light").pack(anchor="w")
         ttk.Label(left, text="填固定 Excel，回到这里，一键出合同。", font=("Microsoft YaHei UI", 15, "bold"), bootstyle="inverse-success").pack(anchor="w", pady=(10, 6))
@@ -354,7 +582,7 @@ class AmsDesktopApp:
         ttk.Button(row2, text="打开最新合同", bootstyle="info", command=self.open_latest_contract_document).pack(side=LEFT, padx=4)
         ttk.Button(row2, text="选择别的 Excel 并生成", bootstyle="secondary", command=self.contract_pick_other_excel_clicked).pack(side=LEFT, padx=4)
 
-        right = ttk.Frame(self.contract_tab)
+        right = ttk.Frame(container)
         right.grid(row=0, column=1, sticky="nsew")
         right.columnconfigure(0, weight=1)
 
@@ -374,10 +602,11 @@ class AmsDesktopApp:
         ttk.Button(latest, text="打开结果目录", bootstyle="secondary", command=lambda: self.open_path(self.ops.contract_result_dir)).pack(anchor="w", pady=(8, 0))
 
     def build_clearance_tab(self) -> None:
-        self.clearance_tab.columnconfigure(0, weight=1)
-        self.clearance_tab.columnconfigure(1, weight=1)
+        container = self.clearance_content
+        container.columnconfigure(0, weight=1)
+        container.columnconfigure(1, weight=1)
 
-        intro = self.make_surface(self.clearance_tab, padding=20, bootstyle="info")
+        intro = self.make_surface(container, padding=20, bootstyle="info")
         intro.grid(row=0, column=0, columnspan=2, sticky="ew", pady=(0, 12))
         self.make_pill(intro, CLEARANCE_FEATURE_NAME, "light").pack(anchor="w")
         ttk.Label(intro, text="把登录、测试和整表回填，收进同一个页面。", font=("Microsoft YaHei UI", 15, "bold"), bootstyle="inverse-info").pack(anchor="w", pady=(10, 6))
@@ -391,7 +620,7 @@ class AmsDesktopApp:
         self.make_path_block(intro, "当前输入文件", textvariable=self.clearance_input_var, bootstyle="inverse-info", wraplength=980).pack(fill=X, pady=(14, 0))
         self.make_path_block(intro, "当前结果目录", textvariable=self.clearance_result_var, bootstyle="inverse-info", wraplength=980).pack(fill=X, pady=(10, 0))
 
-        session_card = self.make_surface(self.clearance_tab, padding=18, bootstyle="light")
+        session_card = self.make_surface(container, padding=18, bootstyle="light")
         session_card.grid(row=1, column=0, sticky="nsew", padx=(0, 10), pady=(0, 12))
         ttk.Label(session_card, text="网站登录", font=("Microsoft YaHei UI", 15, "bold")).pack(anchor="w")
         ttk.Label(session_card, text="首次使用时，先保存一次登录态。以后通常只要检查一下是否过期。", bootstyle="secondary", wraplength=460).pack(anchor="w", pady=(6, 0))
@@ -402,7 +631,7 @@ class AmsDesktopApp:
         ttk.Button(session_row, text="检查登录态", bootstyle="info", command=self.clearance_check_session_clicked).pack(side=LEFT, padx=4)
         ttk.Button(session_row, text="打开登录态目录", bootstyle="secondary", command=lambda: self.open_path(self.ops.clearance_site_session_dir)).pack(side=LEFT, padx=4)
 
-        query_card = self.make_surface(self.clearance_tab, padding=18, bootstyle="light")
+        query_card = self.make_surface(container, padding=18, bootstyle="light")
         query_card.grid(row=1, column=1, sticky="nsew", pady=(0, 12))
         ttk.Label(query_card, text="单票测试", font=("Microsoft YaHei UI", 15, "bold")).pack(anchor="w")
         ttk.Label(query_card, text="先查一票，确认网站查询是通的，再做整表更新会更安心。", bootstyle="secondary", wraplength=460).pack(anchor="w", pady=(6, 0))
@@ -419,7 +648,7 @@ class AmsDesktopApp:
         ttk.Button(query_actions, text="查询这一票", bootstyle="success", command=self.clearance_query_one_clicked).pack(side=LEFT, padx=4)
         ttk.Button(query_actions, text="打开查询结果目录", bootstyle="secondary", command=lambda: self.open_path(self.ops.clearance_site_query_dir)).pack(side=LEFT, padx=4)
 
-        update_card = self.make_surface(self.clearance_tab, padding=20, bootstyle="light")
+        update_card = self.make_surface(container, padding=20, bootstyle="light")
         update_card.grid(row=2, column=0, columnspan=2, sticky="ew")
         ttk.Label(update_card, text="整表自动回填", font=("Microsoft YaHei UI", 15, "bold")).pack(anchor="w")
         ttk.Label(
@@ -443,10 +672,11 @@ class AmsDesktopApp:
         ttk.Button(result_row, text="打开功能说明", bootstyle="info", command=lambda: self.open_help_page("clearance")).pack(side=RIGHT, padx=4)
 
     def build_lineup_tab(self) -> None:
-        self.lineup_tab.columnconfigure(0, weight=3)
-        self.lineup_tab.columnconfigure(1, weight=2)
+        container = self.lineup_content
+        container.columnconfigure(0, weight=3)
+        container.columnconfigure(1, weight=2)
 
-        intro = self.make_surface(self.lineup_tab, padding=22, bootstyle="warning")
+        intro = self.make_surface(container, padding=22, bootstyle="warning")
         intro.grid(row=0, column=0, sticky="nsew", padx=(0, 10))
         self.make_pill(intro, LINEUP_FEATURE_NAME, "light").pack(anchor="w")
         ttk.Label(intro, text="这里会接入后续的船期表与港区矩阵工作流。", font=("Microsoft YaHei UI", 15, "bold"), bootstyle="inverse-warning").pack(anchor="w", pady=(10, 6))
@@ -463,7 +693,7 @@ class AmsDesktopApp:
         ttk.Button(row, text="打开预留目录", bootstyle="secondary", command=lambda: self.open_path(self.ops.lineup_dir)).pack(side=LEFT, padx=4)
         ttk.Button(row, text="打开功能说明", bootstyle="info", command=lambda: self.open_help_page("lineup")).pack(side=LEFT, padx=4)
 
-        roadmap = self.make_surface(self.lineup_tab, padding=18, bootstyle="light")
+        roadmap = self.make_surface(container, padding=18, bootstyle="light")
         roadmap.grid(row=0, column=1, sticky="nsew")
         ttk.Label(roadmap, text="后续会往这里放什么", font=("Microsoft YaHei UI", 15, "bold")).pack(anchor="w")
         self.make_step_row(
@@ -479,7 +709,7 @@ class AmsDesktopApp:
 
     def build_sync_tab(self) -> None:
         self.sync_panel = ExcelSyncPanel(
-            parent=self.sync_tab,
+            parent=self.sync_content,
             window=self.window,
             service=self.ops.build_sync_service(status_callback=lambda: None),
             open_path=self.open_path,
@@ -487,10 +717,11 @@ class AmsDesktopApp:
         )
 
     def build_settings_tab(self) -> None:
-        self.settings_tab.columnconfigure(0, weight=3)
-        self.settings_tab.columnconfigure(1, weight=2)
+        container = self.settings_content
+        container.columnconfigure(0, weight=3)
+        container.columnconfigure(1, weight=2)
 
-        left = self.make_surface(self.settings_tab, padding=20, bootstyle="light")
+        left = self.make_surface(container, padding=20, bootstyle="light")
         left.grid(row=0, column=0, sticky="nsew", padx=(0, 10))
         ttk.Label(left, text="工作区与界面", font=("Microsoft YaHei UI", 15, "bold")).pack(anchor="w")
         ttk.Label(left, text="主要控制工作区位置、主题和浏览器偏好。", bootstyle="secondary").pack(anchor="w", pady=(6, 0))
@@ -523,7 +754,7 @@ class AmsDesktopApp:
         ttk.Button(actions, text="打开工作区", bootstyle="secondary", command=self.open_workspace_root).pack(side=LEFT, padx=4)
         ttk.Button(actions, text="打开用户数据目录", bootstyle="secondary", command=self.open_settings_root).pack(side=LEFT, padx=4)
 
-        right = ttk.Frame(self.settings_tab)
+        right = ttk.Frame(container)
         right.grid(row=0, column=1, sticky="nsew")
         right.columnconfigure(0, weight=1)
 
@@ -907,7 +1138,7 @@ class AmsDesktopApp:
                     "发现新版本",
                     f"当前版本：{APP_VERSION}\n最新版本：{latest}\n\n是否现在下载并自动安装更新？",
                 ):
-                    self.start_task("准备自动更新", self.ops.prepare_update_install, self.on_update_ready)
+                    self.begin_update_install()
             else:
                 if messagebox.askyesno(
                     "发现新版本",
@@ -917,16 +1148,40 @@ class AmsDesktopApp:
         else:
             messagebox.showinfo("检查更新", result["message"])
 
-    def on_update_ready(self, result: dict[str, Any]) -> None:
-        launcher_path = result["launcher_path"]
-        self.log(f"自动更新包已准备：{result['zip_path']}")
-        creation_flags = getattr(subprocess, "CREATE_NEW_CONSOLE", 0)
-        subprocess.Popen(["cmd", "/c", launcher_path], creationflags=creation_flags)
-        messagebox.showinfo(
-            "开始更新",
-            f"新版本 {result['version']} 已准备完成。\n应用现在会关闭，自动安装后重新打开。\n\n你的工作区、设置和登录态不会被删除。",
+    def begin_update_install(self) -> None:
+        if self.update_dialog is not None:
+            return
+        self.update_dialog = UpdatePreparationDialog(self.window)
+        self.update_dialog.start(
+            worker=lambda emit: self.ops.prepare_update_install(progress_callback=emit),
+            on_success=self.on_update_ready,
+            on_error=self.on_update_prepare_error,
+            on_closed=self.on_update_dialog_closed,
         )
-        self.on_close()
+
+    def on_update_ready(self, result: dict[str, Any]) -> None:
+        self.log(f"自动更新包已准备：{result['zip_path']}")
+        self.log(f"独立更新器：{result['updater_exe_path']}")
+        try:
+            self.ops.launch_prepared_update(result)
+        except Exception as exc:
+            self.on_update_prepare_error(str(exc))
+            return
+
+        if self.update_dialog is not None:
+            self.update_dialog.set_status(
+                "下载完成，正在切换到安装器…",
+                "当前窗口会自动关闭，随后由独立更新器继续安装并重启应用。",
+                value=100,
+            )
+        self.window.after(900, self.on_close)
+
+    def on_update_prepare_error(self, error_text: str) -> None:
+        self.log(f"[失败] 准备自动更新\n{error_text}")
+        messagebox.showerror("准备更新失败", self.humanize_error_text(error_text))
+
+    def on_update_dialog_closed(self) -> None:
+        self.update_dialog = None
 
     def on_close(self) -> None:
         try:

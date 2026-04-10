@@ -7,9 +7,11 @@ import re
 import shutil
 import subprocess
 import sys
+import time
+import zipfile
 from dataclasses import asdict, dataclass
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
 
 import requests
 
@@ -22,10 +24,27 @@ from desktop_app.excel_sync_engine import (
 
 
 APP_NAME = "AMS Assistant"
-APP_VERSION = "0.4.0"
+APP_VERSION = "0.4.2"
 APP_REPO_URL = "https://github.com/Cyh29hao/AMS-Assistant-for-Maritime-Service"
 APP_RELEASE_API = "https://api.github.com/repos/Cyh29hao/AMS-Assistant-for-Maritime-Service/releases/latest"
 RELEASE_PACKAGE_PREFIX = "AMS-Assistant-Desktop-v"
+UPDATER_EXE_NAME = "AMS-Assistant-Updater.exe"
+UPDATE_TOP_LEVEL_FILES = [
+    "README.html",
+    "00-从这里开始.html",
+    "00-先看这里.html",
+    "VERSION.txt",
+    "Start AMS Assistant.bat",
+    "Open Workspace.bat",
+    "Open User Data.bat",
+    "Open Guide.bat",
+    "Run Desktop Self Test.bat",
+    "1-启动AMS桌面应用.bat",
+    "2-运行桌面版自检.bat",
+    "3-打开工作区.bat",
+    "4-打开说明.bat",
+    "5-打开用户数据目录.bat",
+]
 
 ENV_SETTINGS_DIR = "AMS_ASSISTANT_SETTINGS_DIR"
 ENV_DEFAULT_WORKSPACE = "AMS_ASSISTANT_DEFAULT_WORKSPACE"
@@ -146,6 +165,7 @@ class ReleaseInfo:
     published_at: str
     asset_name: str
     asset_download_url: str
+    asset_size: int = 0
     body: str = ""
 
 
@@ -509,6 +529,7 @@ class AmsOperations:
             published_at=payload.get("published_at", ""),
             asset_name=package_asset.get("name", ""),
             asset_download_url=package_asset.get("browser_download_url", ""),
+            asset_size=int(package_asset.get("size") or 0),
             body=payload.get("body", "") or "",
         )
 
@@ -540,10 +561,14 @@ class AmsOperations:
             "asset_download_url": release.asset_download_url,
         }
 
-    def prepare_update_install(self) -> dict[str, Any]:
+    def prepare_update_install(
+        self,
+        progress_callback: Callable[[dict[str, Any]], None] | None = None,
+    ) -> dict[str, Any]:
         install_root = portable_install_root()
         if install_root is None:
             raise RuntimeError("自动更新只支持 release 版桌面应用。源码模式请直接更新仓库或重新下载 release。")
+        self._emit_update_progress(progress_callback, value=4, message="正在读取最新版本信息…")
         release = self.fetch_latest_release()
         if parse_version(release.version) <= parse_version(APP_VERSION):
             raise RuntimeError("当前已经是最新版本，不需要更新。")
@@ -551,128 +576,457 @@ class AmsOperations:
         update_root = settings_root() / "updates" / release.version
         update_root.mkdir(parents=True, exist_ok=True)
         zip_path = update_root / release.asset_name
-        if not zip_path.exists():
-            self._download_file(release.asset_download_url, zip_path)
 
-        script_path = update_root / "install-update.ps1"
-        launcher_path = update_root / "install-update.cmd"
-        script_path.write_text(
-            self._build_update_script(
-                current_pid=os.getpid(),
-                zip_path=zip_path,
-                install_root=install_root,
-            ),
-            encoding="utf-8-sig",
+        self._download_file(
+            release.asset_download_url,
+            zip_path,
+            expected_size=release.asset_size,
+            progress_callback=progress_callback,
+            progress_start=10,
+            progress_end=78,
         )
-        launcher_path.write_text(
-            (
-                "@echo off\r\n"
-                "setlocal\r\n"
-                f"powershell -ExecutionPolicy Bypass -File \"{script_path}\"\r\n"
-                "exit /b %errorlevel%\r\n"
-            ),
-            encoding="utf-8",
+
+        updater_root = update_root / "updater-app"
+        updater_exe_path = self._prepare_updater_bundle(
+            updater_root,
+            progress_callback=progress_callback,
+            progress_start=82,
+            progress_end=94,
         )
+
+        self._emit_update_progress(progress_callback, value=96, message="正在写入更新信息…")
+        manifest_path = update_root / "update-manifest.json"
+        manifest_payload = {
+            "version": release.version,
+            "current_pid": os.getpid(),
+            "zip_path": str(zip_path),
+            "install_root": str(install_root),
+            "bundle_dir_name": Path(sys.executable).resolve().parent.name,
+            "exe_name": Path(sys.executable).resolve().name,
+            "top_level_files": UPDATE_TOP_LEVEL_FILES,
+        }
+        manifest_path.write_text(json.dumps(manifest_payload, ensure_ascii=False, indent=2), encoding="utf-8")
+        self._emit_update_progress(progress_callback, value=100, message="更新包准备完成，即将切换到安装器…")
+
         return {
             "version": release.version,
             "zip_path": str(zip_path),
-            "script_path": str(script_path),
-            "launcher_path": str(launcher_path),
+            "manifest_path": str(manifest_path),
+            "updater_exe_path": str(updater_exe_path),
         }
 
-    def _download_file(self, url: str, destination: Path) -> None:
+    def launch_prepared_update(self, prepared_update: dict[str, Any]) -> None:
+        updater_exe = Path(prepared_update["updater_exe_path"]).resolve()
+        manifest_path = Path(prepared_update["manifest_path"]).resolve()
+        if not updater_exe.exists():
+            raise FileNotFoundError(f"Updater executable not found: {updater_exe}")
+        if not manifest_path.exists():
+            raise FileNotFoundError(f"Update manifest not found: {manifest_path}")
+
+        subprocess.Popen(
+            [str(updater_exe), "--apply-update-manifest", str(manifest_path)],
+            cwd=str(updater_exe.parent),
+        )
+
+    def apply_prepared_update(
+        self,
+        manifest_path: Path | str,
+        progress_callback: Callable[[dict[str, Any]], None] | None = None,
+    ) -> dict[str, Any]:
+        manifest_path = Path(manifest_path).expanduser().resolve()
+        payload = json.loads(manifest_path.read_text(encoding="utf-8-sig"))
+
+        install_root = Path(payload["install_root"]).resolve()
+        zip_path = Path(payload["zip_path"]).resolve()
+        current_pid = int(payload["current_pid"])
+        bundle_dir_name = str(payload.get("bundle_dir_name") or "AMS-Assistant-Desktop")
+        exe_name = str(payload.get("exe_name") or "AMS-Assistant-Desktop.exe")
+        top_level_files = list(payload.get("top_level_files") or UPDATE_TOP_LEVEL_FILES)
+
+        update_root = manifest_path.parent
+        extract_root = update_root / "extracted"
+        app_root = install_root / "app"
+        target_app_dir = app_root / bundle_dir_name
+        stage_app_dir = app_root / f"{bundle_dir_name}.incoming"
+        backup_app_dir = app_root / f"{bundle_dir_name}.backup-{self._timestamp()}"
+        help_dir = install_root / "help"
+        stage_help_dir = install_root / "help.incoming"
+        user_data_dir = install_root / "user-data"
+
+        self._wait_for_process_exit(current_pid, progress_callback=progress_callback, progress_start=0, progress_end=12)
+        payload_root = self._extract_release_archive(
+            zip_path,
+            extract_root,
+            progress_callback=progress_callback,
+            progress_start=12,
+            progress_end=40,
+        )
+
+        source_app_dir = payload_root / "app" / bundle_dir_name
+        if not source_app_dir.exists():
+            raise RuntimeError("更新包中缺少 app 目录，无法继续安装。")
+
+        app_root.mkdir(parents=True, exist_ok=True)
+        if stage_app_dir.exists():
+            shutil.rmtree(stage_app_dir)
+        if source_app_dir.drive.lower() == stage_app_dir.drive.lower():
+            self._emit_update_progress(progress_callback, value=40, message="正在快速搬运新版本程序文件…")
+            source_app_dir.rename(stage_app_dir)
+            self._emit_update_progress(progress_callback, value=72, message="新版本程序文件已就位。")
+        else:
+            self._copy_tree_with_progress(
+                source_app_dir,
+                stage_app_dir,
+                progress_callback=progress_callback,
+                progress_start=40,
+                progress_end=72,
+                message="正在复制新版本程序文件…",
+            )
+
+        self._emit_update_progress(progress_callback, value=74, message="正在切换到新版本程序文件…")
+        if target_app_dir.exists():
+            if backup_app_dir.exists():
+                shutil.rmtree(backup_app_dir)
+            target_app_dir.rename(backup_app_dir)
+        try:
+            stage_app_dir.rename(target_app_dir)
+        except Exception:
+            if target_app_dir.exists():
+                shutil.rmtree(target_app_dir)
+            if backup_app_dir.exists() and not target_app_dir.exists():
+                backup_app_dir.rename(target_app_dir)
+            raise
+
+        source_help_dir = payload_root / "help"
+        if stage_help_dir.exists():
+            shutil.rmtree(stage_help_dir)
+        if source_help_dir.exists():
+            if source_help_dir.drive.lower() == stage_help_dir.drive.lower():
+                self._emit_update_progress(progress_callback, value=72, message="正在快速搬运帮助与说明文件…")
+                source_help_dir.rename(stage_help_dir)
+                self._emit_update_progress(progress_callback, value=84, message="帮助与说明文件已就位。")
+            else:
+                self._copy_tree_with_progress(
+                    source_help_dir,
+                    stage_help_dir,
+                    progress_callback=progress_callback,
+                    progress_start=72,
+                    progress_end=84,
+                    message="正在更新帮助与说明文件…",
+                )
+            help_backup_dir = install_root / f"help.backup-{self._timestamp()}"
+            if help_backup_dir.exists():
+                shutil.rmtree(help_backup_dir)
+            try:
+                if help_dir.exists():
+                    help_dir.rename(help_backup_dir)
+                stage_help_dir.rename(help_dir)
+                if help_backup_dir.exists():
+                    shutil.rmtree(help_backup_dir)
+            except Exception:
+                if help_dir.exists():
+                    shutil.rmtree(help_dir)
+                if help_backup_dir.exists() and not help_dir.exists():
+                    help_backup_dir.rename(help_dir)
+                raise
+
+        self._copy_top_level_files(
+            payload_root,
+            install_root,
+            top_level_files,
+            progress_callback=progress_callback,
+            progress_start=84,
+            progress_end=92,
+        )
+
+        payload_user_data_dir = payload_root / "user-data"
+        if not user_data_dir.exists() and payload_user_data_dir.exists():
+            self._copy_tree_with_progress(
+                payload_user_data_dir,
+                user_data_dir,
+                progress_callback=progress_callback,
+                progress_start=92,
+                progress_end=95,
+                message="正在准备用户数据目录…",
+            )
+
+        self._emit_update_progress(progress_callback, value=96, message="正在清理安装缓存…")
+        if extract_root.exists():
+            shutil.rmtree(extract_root)
+
+        self._emit_update_progress(progress_callback, value=98, message="正在启动新版本…")
+        restarted = self._restart_installed_app(
+            install_root=install_root,
+            bundle_dir_name=bundle_dir_name,
+            exe_name=exe_name,
+        )
+        if backup_app_dir.exists():
+            shutil.rmtree(backup_app_dir)
+        self._emit_update_progress(progress_callback, value=100, message="更新完成，已尝试启动新版本。")
+        return {
+            "version": payload.get("version", ""),
+            "install_root": str(install_root),
+            "restarted_executable": str(restarted),
+        }
+
+    def _download_file(
+        self,
+        url: str,
+        destination: Path,
+        expected_size: int = 0,
+        progress_callback: Callable[[dict[str, Any]], None] | None = None,
+        progress_start: float = 0,
+        progress_end: float = 100,
+    ) -> None:
         destination.parent.mkdir(parents=True, exist_ok=True)
+        if destination.exists() and expected_size and destination.stat().st_size == expected_size:
+            self._emit_update_progress(
+                progress_callback,
+                value=progress_end,
+                message="已复用已下载的安装包。",
+                detail=self._format_size(expected_size),
+            )
+            return
+
+        partial_path = destination.with_suffix(destination.suffix + ".part")
+        if partial_path.exists():
+            partial_path.unlink()
+
         with requests.get(url, timeout=60, stream=True, headers={"User-Agent": APP_NAME}) as response:
             response.raise_for_status()
-            with destination.open("wb") as fh:
+            total_bytes = int(response.headers.get("content-length") or 0) or expected_size
+            downloaded = 0
+            with partial_path.open("wb") as fh:
                 for chunk in response.iter_content(chunk_size=1024 * 1024):
-                    if chunk:
-                        fh.write(chunk)
+                    if not chunk:
+                        continue
+                    fh.write(chunk)
+                    downloaded += len(chunk)
+                    if total_bytes > 0:
+                        ratio = min(downloaded / total_bytes, 1.0)
+                        value = progress_start + ratio * (progress_end - progress_start)
+                        detail = f"{self._format_size(downloaded)} / {self._format_size(total_bytes)}"
+                    else:
+                        value = progress_start
+                        detail = f"已下载 {self._format_size(downloaded)}"
+                    self._emit_update_progress(
+                        progress_callback,
+                        value=value,
+                        message="正在下载更新包…",
+                        detail=detail,
+                    )
+        partial_path.replace(destination)
 
-    def _build_update_script(self, current_pid: int, zip_path: Path, install_root: Path) -> str:
-        top_level_files = [
-            "README.html",
-            "00-从这里开始.html",
-            "00-先看这里.html",
-            "VERSION.txt",
-            "Start AMS Assistant.bat",
-            "Open Workspace.bat",
-            "Open User Data.bat",
-            "Open Guide.bat",
-            "Run Desktop Self Test.bat",
-            "1-启动AMS桌面应用.bat",
-            "2-运行桌面版自检.bat",
-            "3-打开工作区.bat",
-            "4-打开说明.bat",
-            "5-打开用户数据目录.bat",
-        ]
-        files_literal = "@(" + ",".join(f"'{name}'" for name in top_level_files) + ")"
-        return f"""$ErrorActionPreference = 'Stop'
-$currentPid = {current_pid}
-$zipPath = '{zip_path}'
-$installRoot = '{install_root}'
-$extractRoot = Join-Path (Split-Path -Parent $zipPath) 'extracted'
-$backupApp = Join-Path $installRoot ('app-backup-' + (Get-Date -Format 'yyyyMMdd-HHmmss'))
-$targetApp = Join-Path $installRoot 'app'
-$targetHelp = Join-Path $installRoot 'help'
-$userDataDst = Join-Path $installRoot 'user-data'
+    def _prepare_updater_bundle(
+        self,
+        destination_root: Path,
+        progress_callback: Callable[[dict[str, Any]], None] | None = None,
+        progress_start: float = 82,
+        progress_end: float = 94,
+    ) -> Path:
+        current_bundle_dir = Path(sys.executable).resolve().parent
+        helper_source = current_bundle_dir / UPDATER_EXE_NAME
+        if destination_root.exists():
+            shutil.rmtree(destination_root)
+        destination_root.mkdir(parents=True, exist_ok=True)
 
-try {{
-  Wait-Process -Id $currentPid -Timeout 120 -ErrorAction SilentlyContinue
-}} catch {{
-}}
+        if helper_source.exists():
+            helper_target = destination_root / UPDATER_EXE_NAME
+            self._emit_update_progress(progress_callback, value=progress_start, message="正在准备独立更新器…", detail=UPDATER_EXE_NAME)
+            shutil.copy2(helper_source, helper_target)
+            self._emit_update_progress(progress_callback, value=progress_end, message="独立更新器已准备完成。", detail=str(helper_target.name))
+            return helper_target
 
-if (Test-Path $extractRoot) {{
-  Remove-Item -LiteralPath $extractRoot -Recurse -Force
-}}
+        destination_bundle_dir = destination_root / current_bundle_dir.name
+        self._copy_tree_with_progress(
+            current_bundle_dir,
+            destination_bundle_dir,
+            progress_callback=progress_callback,
+            progress_start=progress_start,
+            progress_end=progress_end,
+            message="正在准备独立更新器…",
+        )
+        return destination_bundle_dir / Path(sys.executable).resolve().name
 
-Expand-Archive -LiteralPath $zipPath -DestinationPath $extractRoot -Force
-$payloadRoot = $extractRoot
-if (!(Test-Path (Join-Path $payloadRoot 'app'))) {{
-  $dirs = Get-ChildItem -LiteralPath $extractRoot -Directory
-  if ($dirs.Count -eq 1 -and (Test-Path (Join-Path $dirs[0].FullName 'app'))) {{
-    $payloadRoot = $dirs[0].FullName
-  }} else {{
-    throw '无法识别 release 压缩包结构。'
-  }}
-}}
+    def _wait_for_process_exit(
+        self,
+        current_pid: int,
+        progress_callback: Callable[[dict[str, Any]], None] | None = None,
+        progress_start: float = 0,
+        progress_end: float = 100,
+        timeout_seconds: int = 120,
+    ) -> None:
+        for tick in range(timeout_seconds):
+            if not self._is_pid_running(current_pid):
+                self._emit_update_progress(progress_callback, value=progress_end, message="当前版本已退出，准备安装…")
+                return
+            ratio = (tick + 1) / max(timeout_seconds, 1)
+            value = progress_start + ratio * (progress_end - progress_start)
+            self._emit_update_progress(
+                progress_callback,
+                value=value,
+                message="正在等待当前版本安全退出…",
+                detail=f"最多再等待 {timeout_seconds - tick - 1} 秒",
+            )
+            time.sleep(1)
+        raise TimeoutError("等待当前版本退出超时，请先关闭仍在运行的 AMS Assistant 后重试。")
 
-$sourceApp = Join-Path $payloadRoot 'app'
-if (!(Test-Path $sourceApp)) {{
-  throw '压缩包中缺少 app 目录。'
-}}
+    def _is_pid_running(self, pid: int) -> bool:
+        if pid <= 0:
+            return False
+        if sys.platform.startswith("win"):
+            result = subprocess.run(
+                ["tasklist", "/FI", f"PID eq {pid}"],
+                capture_output=True,
+                text=True,
+                encoding="utf-8",
+                errors="ignore",
+            )
+            output = (result.stdout or "") + (result.stderr or "")
+            return str(pid) in output and "No tasks are running" not in output
+        try:
+            os.kill(pid, 0)
+        except OSError:
+            return False
+        return True
 
-if (Test-Path $targetApp) {{
-  Move-Item -LiteralPath $targetApp -Destination $backupApp
-}}
-Copy-Item -LiteralPath $sourceApp -Destination $targetApp -Recurse -Force
+    def _extract_release_archive(
+        self,
+        zip_path: Path,
+        destination_root: Path,
+        progress_callback: Callable[[dict[str, Any]], None] | None = None,
+        progress_start: float = 0,
+        progress_end: float = 100,
+    ) -> Path:
+        if destination_root.exists():
+            shutil.rmtree(destination_root)
+        destination_root.mkdir(parents=True, exist_ok=True)
 
-$sourceHelp = Join-Path $payloadRoot 'help'
-if (Test-Path $targetHelp) {{
-  Remove-Item -LiteralPath $targetHelp -Recurse -Force
-}}
-if (Test-Path $sourceHelp) {{
-  Copy-Item -LiteralPath $sourceHelp -Destination $targetHelp -Recurse -Force
-}}
+        with zipfile.ZipFile(zip_path, "r") as archive:
+            members = archive.infolist()
+            total_members = max(len(members), 1)
+            for index, member in enumerate(members, start=1):
+                archive.extract(member, destination_root)
+                value = progress_start + (index / total_members) * (progress_end - progress_start)
+                self._emit_update_progress(
+                    progress_callback,
+                    value=value,
+                    message="正在解压更新包…",
+                    detail=member.filename,
+                )
 
-foreach ($name in {files_literal}) {{
-  $src = Join-Path $payloadRoot $name
-  if (Test-Path $src) {{
-    Copy-Item -LiteralPath $src -Destination (Join-Path $installRoot $name) -Force
-  }}
-}}
+        payload_root = destination_root
+        if not (payload_root / "app").exists():
+            subdirs = [item for item in destination_root.iterdir() if item.is_dir()]
+            if len(subdirs) == 1 and (subdirs[0] / "app").exists():
+                payload_root = subdirs[0]
+            else:
+                raise RuntimeError("无法识别 release 压缩包结构。")
+        return payload_root
 
-$userDataSrc = Join-Path $payloadRoot 'user-data'
-if (!(Test-Path $userDataDst) -and (Test-Path $userDataSrc)) {{
-  Copy-Item -LiteralPath $userDataSrc -Destination $userDataDst -Recurse -Force
-}}
+    def _copy_tree_with_progress(
+        self,
+        source_dir: Path,
+        destination_dir: Path,
+        progress_callback: Callable[[dict[str, Any]], None] | None = None,
+        progress_start: float = 0,
+        progress_end: float = 100,
+        message: str = "正在复制文件…",
+    ) -> None:
+        files = [path for path in source_dir.rglob("*") if path.is_file()]
+        destination_dir.mkdir(parents=True, exist_ok=True)
+        if not files:
+            self._emit_update_progress(progress_callback, value=progress_end, message=message)
+            return
 
-if (Test-Path $backupApp) {{
-  Remove-Item -LiteralPath $backupApp -Recurse -Force
-}}
+        total_files = len(files)
+        for index, source_path in enumerate(files, start=1):
+            relative_path = source_path.relative_to(source_dir)
+            target_path = destination_dir / relative_path
+            target_path.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(source_path, target_path)
+            value = progress_start + (index / total_files) * (progress_end - progress_start)
+            self._emit_update_progress(
+                progress_callback,
+                value=value,
+                message=message,
+                detail=str(relative_path),
+            )
 
-Start-Process -FilePath (Join-Path $installRoot '1-启动AMS桌面应用.bat')
-"""
+    def _copy_top_level_files(
+        self,
+        source_root: Path,
+        destination_root: Path,
+        filenames: list[str],
+        progress_callback: Callable[[dict[str, Any]], None] | None = None,
+        progress_start: float = 0,
+        progress_end: float = 100,
+    ) -> None:
+        if not filenames:
+            return
+        total = len(filenames)
+        for index, filename in enumerate(filenames, start=1):
+            source_path = source_root / filename
+            if source_path.exists():
+                shutil.copy2(source_path, destination_root / filename)
+            value = progress_start + (index / total) * (progress_end - progress_start)
+            self._emit_update_progress(
+                progress_callback,
+                value=value,
+                message="正在更新启动器与说明文件…",
+                detail=filename,
+            )
+
+    def _restart_installed_app(self, install_root: Path, bundle_dir_name: str, exe_name: str) -> Path:
+        executable_path = install_root / "app" / bundle_dir_name / exe_name
+        if not executable_path.exists():
+            raise FileNotFoundError(f"Updated executable not found: {executable_path}")
+
+        user_data_root = install_root / "user-data"
+        settings_dir = user_data_root / "settings"
+        workspace_dir = user_data_root / "workspace"
+        settings_dir.mkdir(parents=True, exist_ok=True)
+        workspace_dir.mkdir(parents=True, exist_ok=True)
+
+        env = os.environ.copy()
+        env[ENV_SETTINGS_DIR] = str(settings_dir)
+        env[ENV_DEFAULT_WORKSPACE] = str(workspace_dir)
+
+        subprocess.Popen(
+            [str(executable_path)],
+            cwd=str(executable_path.parent),
+            env=env,
+        )
+        return executable_path
+
+    def _emit_update_progress(
+        self,
+        progress_callback: Callable[[dict[str, Any]], None] | None,
+        *,
+        value: float,
+        message: str,
+        detail: str = "",
+    ) -> None:
+        if progress_callback is None:
+            return
+        progress_callback(
+            {
+                "value": max(0.0, min(100.0, float(value))),
+                "message": message,
+                "detail": detail,
+            }
+        )
+
+    def _format_size(self, size_bytes: int) -> str:
+        units = ["B", "KB", "MB", "GB"]
+        size = float(max(size_bytes, 0))
+        for unit in units:
+            if size < 1024 or unit == units[-1]:
+                if unit == "B":
+                    return f"{int(size)} {unit}"
+                return f"{size:.1f} {unit}"
+            size /= 1024
+        return f"{int(size_bytes)} B"
 
     def render_clearance_query_text(self, result: dict[str, Any]) -> str:
         lines = [

@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import argparse
-import json
 import queue
 import sys
 import threading
@@ -17,7 +16,7 @@ ROOT = THIS_DIR
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from desktop_app.runtime import APP_NAME, AmsOperations, AppConfig, help_assets_dir, release_assets_dir, skill_root
+from desktop_app.runtime import APP_NAME, AmsOperations, AppConfig
 
 
 class UpdateInstallerWindow:
@@ -80,16 +79,13 @@ class UpdateInstallerWindow:
 
         ttk.Label(card, textvariable=self.status_var, font=("Microsoft YaHei UI", 12, "bold")).pack(anchor="w", pady=(10, 4))
         ttk.Label(card, textvariable=self.detail_var, bootstyle="secondary", wraplength=500, justify="left").pack(anchor="w")
-
-        tips = ttk.Frame(card)
-        tips.pack(fill=X, pady=(18, 0))
         ttk.Label(
-            tips,
+            card,
             text="请不要在这一步手动删除程序文件，也不用重复点击检查更新。",
             bootstyle="secondary",
             wraplength=500,
             justify="left",
-        ).pack(anchor="w")
+        ).pack(anchor="w", pady=(18, 0))
 
     def start_worker(self) -> None:
         def worker() -> None:
@@ -161,87 +157,9 @@ class UpdateInstallerWindow:
             fh.write(message + "\n")
 
 
-def run_self_test(output_path: Path, workspace_root: Path | None = None) -> int:
-    import openpyxl
-
-    from desktop_app.excel_sync_engine import DEFAULT_SETTINGS as DEFAULT_SYNC_SETTINGS
-    from desktop_app.excel_sync_engine import SyncTask, create_demo_workbooks, sync_task
-
-    config = AppConfig.default() if workspace_root is None else AppConfig(workspace_root=str(workspace_root.resolve()))
-    ops = AmsOperations(config)
-    info = ops.ensure_workspace()
-
-    example_dir = skill_root() / "examples" / "workbooks"
-    example_workbook = next(example_dir.glob("domestic-forwarder-*.xlsx"))
-    req1_result = ops.contract_generate_from_file(example_workbook)
-
-    sync_demo = create_demo_workbooks(ops.sync_examples_dir, force=True)
-    sync_result = sync_task(
-        SyncTask(
-            name="自检任务",
-            source_file=str(sync_demo["source_path"]),
-            source_sheet="Orders",
-            target_file=str(sync_demo["target_path"]),
-            target_sheet="Export",
-            column_selection_mode="exclude",
-            columns_by_header=["备注"],
-            header_row=1,
-            data_start_row=2,
-        ),
-        DEFAULT_SYNC_SETTINGS,
-    )
-
-    sync_workbook = openpyxl.load_workbook(sync_result.path)
-    try:
-        sync_ws = sync_workbook["Export"]
-        hidden_row_preserved = sync_ws.row_dimensions[3].hidden
-        blank_row_preserved = sync_ws.max_row >= 5
-        excluded_column_removed = sync_ws.max_column == 5
-    finally:
-        sync_workbook.close()
-
-    report = {
-        "success": True,
-        "frozen": bool(getattr(sys, "frozen", False)),
-        "workspace_root": info["workspace_root"],
-        "contract_input_path": info["contract_input_path"],
-        "clearance_input_path": info["clearance_input_path"],
-        "req1_document_path": req1_result["document_path"],
-        "req1_summary_path": req1_result["summary_path"],
-        "req1_latest_document_path": req1_result["latest_document_path"],
-        "req1_latest_summary_path": req1_result["latest_summary_path"],
-        "req1_latest_document_exists": Path(req1_result["latest_document_path"]).exists(),
-        "req1_latest_summary_exists": Path(req1_result["latest_summary_path"]).exists(),
-        "sync_demo_source_path": str(sync_demo["source_path"]),
-        "sync_demo_target_path": str(sync_demo["target_path"]),
-        "sync_target_exists": sync_result.path.exists(),
-        "sync_hidden_row_preserved": hidden_row_preserved,
-        "sync_blank_row_preserved": blank_row_preserved,
-        "sync_excluded_column_removed": excluded_column_removed,
-        "help_index_exists": (help_assets_dir() / "index.html").exists(),
-        "guide_exists": (release_assets_dir() / "应用使用说明.html").exists(),
-        "updater_exists": (Path(sys.executable).resolve().parent / "AMS-Assistant-Updater.exe").exists()
-        if getattr(sys, "frozen", False)
-        else False,
-    }
-    output_path.parent.mkdir(parents=True, exist_ok=True)
-    output_path.write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8-sig")
-    return 0
-
-
-def run_gui() -> int:
-    from desktop_app.app import main as gui_main
-
-    gui_main()
-    return 0
-
-
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(add_help=False)
-    parser.add_argument("--self-test", action="store_true")
-    parser.add_argument("--self-test-output")
-    parser.add_argument("--self-test-workspace")
-    parser.add_argument("--apply-update-manifest")
+    parser.add_argument("--apply-update-manifest", required=True)
     return parser
 
 
@@ -259,14 +177,8 @@ def write_update_bootstrap_log(manifest_arg: str, stage: str) -> None:
 def main() -> int:
     parser = build_parser()
     args, _unknown = parser.parse_known_args()
-    if args.self_test:
-        output_path = Path(args.self_test_output or "ams-desktop-self-test.json").resolve()
-        workspace_root = Path(args.self_test_workspace).resolve() if args.self_test_workspace else None
-        return run_self_test(output_path, workspace_root)
-    if args.apply_update_manifest:
-        write_update_bootstrap_log(args.apply_update_manifest, "ENTER_UPDATE_MODE")
-        return UpdateInstallerWindow(Path(args.apply_update_manifest).resolve()).run()
-    return run_gui()
+    write_update_bootstrap_log(args.apply_update_manifest, "ENTER_UPDATE_HELPER")
+    return UpdateInstallerWindow(Path(args.apply_update_manifest).resolve()).run()
 
 
 if __name__ == "__main__":
